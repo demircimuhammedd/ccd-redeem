@@ -54,6 +54,7 @@ enum Error {
     CoinNotFound,
     CoinAlreadyRedeemed,
     InvokeTransferError,
+    InvalidSignatures,
 }
 
 #[derive(Serialize, SchemaType)]
@@ -94,15 +95,21 @@ struct RedeemParam {
     name = "redeem",
     parameter = "RedeemParam",
     error = "Error",
+    crypto_primitives,
     mutable
 )]
 fn contract_redeem<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
+    crypto_primitives: &impl HasCryptoPrimitives,
 ) -> Result<(), Error> {
     let param: RedeemParam = ctx.parameter_cursor().get()?;
 
-    // TODO: verify the signature here!
+    // Verify coin signature 
+    let is_valid = crypto_primitives.verify_ed25519_signature(param.public_key, param.signature, &param.account.0);
+    ensure!(is_valid,Error::InvalidSignatures);
+
+    // Redeem coin
     let amount = host.state_mut().redeem(param.public_key)?;
     host.invoke_transfer(&param.account, amount)?;
 
