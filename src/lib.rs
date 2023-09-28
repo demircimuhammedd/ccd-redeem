@@ -4,10 +4,20 @@
 use concordium_std::*;
 use core::fmt::Debug;
 
-#[derive(Serialize)]
-struct CoinState {
-    amount: Amount,
-    is_redeemed: bool,
+#[derive(Serialize, Clone, Copy)]
+pub struct CoinState {
+    pub amount: Amount,
+    pub is_redeemed: bool,
+}
+
+impl CoinState {
+    // Create a new coin that is not redeemed.
+    fn from_amount(amount: Amount) -> Self {
+        CoinState {
+            amount,
+            is_redeemed: false,
+        }
+    }
 }
 
 /// Smart contract state.
@@ -55,6 +65,7 @@ enum Error {
     ParseParams,
     CoinNotFound,
     CoinAlreadyRedeemed,
+    CoinAlreadyExists,
     InvokeTransfer,
     InvalidSignatures,
     NotAuthorized,
@@ -78,13 +89,7 @@ fn init<S: HasStateApi>(
     let admin = ctx.init_origin();
     let mut state = State::empty(state_builder, admin);
     for (key, amount) in param.coins {
-        state.coins.insert(
-            key,
-            CoinState {
-                amount,
-                is_redeemed: false,
-            },
-        );
+        state.coins.insert(key, CoinState::from_amount(amount));
     }
     Ok(state)
 }
@@ -96,7 +101,7 @@ pub struct RedeemParam {
     pub account: AccountAddress,
 }
 
-/// An entrypoint that redeems the coin corresponding to the public key, if it was not redeemed already.
+/// An entrypoint that redeems the coin corresponding to the public key, if it has not been redeemed already.
 #[receive(
     contract = "ccd_redeem",
     name = "redeem",
@@ -127,6 +132,43 @@ fn contract_redeem<S: HasStateApi>(
     Ok(())
 }
 
+#[derive(Serialize, SchemaType)]
+pub struct IssueParam {
+    pub coins: Vec<(PublicKeyEd25519, Amount)>,
+}
+
+/// An entrypoint for batch issue of coins.
+///
+/// It rejects if:
+/// - It fails to parse the parameter.
+/// - Any of the coins are already issued (that is, the corresponding keys are
+///  already in the state).
+#[receive(
+    contract = "ccd_redeem",
+    name = "issue",
+    parameter = "IssueParam",
+    error = "Error",
+    mutable
+)]
+fn contract_issue<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<State<S>, StateApiType = S>,
+) -> Result<(), Error> {
+    let param: IssueParam = ctx.parameter_cursor().get()?;
+
+    for (key, amount) in param.coins {
+        if let Some(_) = host
+            .state_mut()
+            .coins
+            .insert(key, CoinState::from_amount(amount))
+        {
+            return Err(Error::CoinAlreadyExists);
+        }
+    }
+
+    Ok(())
+}
+
 /// Check whether the transaction `sender` is the admin.
 fn sender_is_admin<S: HasStateApi>(ctx: &impl HasReceiveContext, state: &State<S>) -> bool {
     ctx.sender().matches_account(&state.admin)
@@ -152,11 +194,22 @@ fn contract_set_admin<S: HasStateApi>(
     Ok(())
 }
 
+#[derive(Serialize)]
+pub struct ViewReturnData {
+    pub coins: Vec<(PublicKeyEd25519, CoinState)>,
+    pub admin: AccountAddress,
+}
+
 /// View function that returns the content of the state.
 #[receive(contract = "ccd_redeem", name = "view", return_value = "State")]
 fn view<'b, S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &'b impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<&'b State<S>> {
-    Ok(host.state())
+) -> ReceiveResult<ViewReturnData> {
+    let coins: Vec<(PublicKeyEd25519, CoinState)> =
+        host.state().coins.iter().map(|x| (*x.0, *x.1)).collect();
+    Ok(ViewReturnData {
+        coins,
+        admin: host.state().admin,
+    })
 }

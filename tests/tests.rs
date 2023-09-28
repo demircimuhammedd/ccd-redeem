@@ -22,6 +22,8 @@ const PUBLIC_KEY: PublicKeyEd25519 = PublicKeyEd25519([
     52, 91, 43, 58, 247, 61, 234, 223, 107, 75, 124, 13,
 ]);
 
+const AMOUNT: Amount = Amount::from_ccd(10);
+
 // Seed: 9758DFD6DD81F57FA9AE75B3C92BED49B3C26C28723CEA00C9E1851CAED7BBF4
 // Use to generate keys and signatures: https://cyphr.me/ed25519_tool/ed.html
 
@@ -43,7 +45,7 @@ fn initialize(
     chain: &mut Chain,
     deployment: &ModuleDeploySuccess,
 ) -> Result<ContractInitSuccess, ContractInitError> {
-    let coins = vec![(PUBLIC_KEY, Amount::from_ccd(10))];
+    let coins = vec![(PUBLIC_KEY, AMOUNT)];
     let param_bytes = OwnedParameter::from_serial(&InitParam { coins })
         .expect("Parameters should be serialized successfully");
 
@@ -86,8 +88,10 @@ fn test_redeem() {
         signature: SIGNATURE,
     })
     .expect("Parameters should be serialized successfully");
+
     chain
-        .contract_invoke(
+        .contract_update(
+            Signer::with_one_key(),
             ACCOUNT_1,
             Address::Account(ACCOUNT_1),
             Energy::from(10000),
@@ -99,4 +103,29 @@ fn test_redeem() {
             },
         )
         .expect("Contract call succeeds");
+
+    let res = chain
+        .contract_invoke(
+            ACCOUNT_1,
+            Address::Account(ACCOUNT_1),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: init_info.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("ccd_redeem.view".to_string()),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Contract view call succeeds");
+    let result = from_bytes::<ViewReturnData>(res.return_value.as_slice())
+        .expect("Data deserialized successfully");
+    assert!(
+        result
+            .coins
+            .get(0)
+            .expect("Fisrt element expected to exist")
+            .1
+            .is_redeemed,
+        "The coin is expected to be redeemed"
+    )
 }
