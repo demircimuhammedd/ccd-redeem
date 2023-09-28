@@ -14,12 +14,14 @@ struct CoinState {
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 pub struct State<S> {
+    admin: AccountAddress,
     coins: StateMap<PublicKeyEd25519, CoinState, S>,
 }
 
 impl<S: HasStateApi> State<S> {
-    fn empty(state_builder: &mut StateBuilder<S>) -> Self {
+    fn empty(state_builder: &mut StateBuilder<S>, admin: AccountAddress) -> Self {
         State {
+            admin,
             coins: state_builder.new_map(),
         }
     }
@@ -41,7 +43,7 @@ impl<S: HasStateApi> State<S> {
 /// Mapping errors related to contract invocations to CustomContractError.
 impl From<TransferError> for Error {
     fn from(_te: TransferError) -> Self {
-        Self::InvokeTransferError
+        Self::InvokeTransfer
     }
 }
 
@@ -53,23 +55,28 @@ enum Error {
     ParseParams,
     CoinNotFound,
     CoinAlreadyRedeemed,
-    InvokeTransferError,
+    InvokeTransfer,
     InvalidSignatures,
+    NotAuthorized,
 }
 
 #[derive(Serialize, SchemaType)]
-struct InitParam {
-    coins: Vec<(PublicKeyEd25519, Amount)>,
+pub struct InitParam {
+    pub coins: Vec<(PublicKeyEd25519, Amount)>,
 }
 
 /// Init function that creates a new smart contract.
-#[init(contract = "ccd_redeem")]
+/// Adds the coins provided as input to the state and sets the account that
+/// deployed the contract to be the contract's admin.
+#[init(contract = "ccd_redeem", payable)]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     state_builder: &mut StateBuilder<S>,
+    _amount: Amount,
 ) -> InitResult<State<S>> {
     let param: InitParam = ctx.parameter_cursor().get()?;
-    let mut state = State::empty(state_builder);
+    let admin = ctx.init_origin();
+    let mut state = State::empty(state_builder, admin);
     for (key, amount) in param.coins {
         state.coins.insert(
             key,
@@ -83,13 +90,13 @@ fn init<S: HasStateApi>(
 }
 
 #[derive(Serialize, SchemaType)]
-struct RedeemParam {
-    public_key: PublicKeyEd25519,
-    signature: SignatureEd25519,
-    account: AccountAddress,
+pub struct RedeemParam {
+    pub public_key: PublicKeyEd25519,
+    pub signature: SignatureEd25519,
+    pub account: AccountAddress,
 }
 
-/// Receive function that redeems the coin corresponding to the public key, if it was not redeemed already.
+/// An entrypoint that redeems the coin corresponding to the public key, if it was not redeemed already.
 #[receive(
     contract = "ccd_redeem",
     name = "redeem",
@@ -105,14 +112,43 @@ fn contract_redeem<S: HasStateApi>(
 ) -> Result<(), Error> {
     let param: RedeemParam = ctx.parameter_cursor().get()?;
 
-    // Verify coin signature 
-    let is_valid = crypto_primitives.verify_ed25519_signature(param.public_key, param.signature, &param.account.0);
-    ensure!(is_valid,Error::InvalidSignatures);
+    // Verify coin signature
+    let is_valid = crypto_primitives.verify_ed25519_signature(
+        param.public_key,
+        param.signature,
+        &param.account.0,
+    );
+    ensure!(is_valid, Error::InvalidSignatures);
 
     // Redeem coin
     let amount = host.state_mut().redeem(param.public_key)?;
     host.invoke_transfer(&param.account, amount)?;
 
+    Ok(())
+}
+
+/// Check whether the transaction `sender` is the admin.
+fn sender_is_admin<S: HasStateApi>(ctx: &impl HasReceiveContext, state: &State<S>) -> bool {
+    ctx.sender().matches_account(&state.admin)
+}
+
+/// An entrypoint that updates the admin.
+/// Can be called only be the current admin.
+#[receive(
+    contract = "ccd_redeem",
+    name = "setAdmin",
+    parameter = "AccountAddress",
+    error = "Error",
+    mutable
+)]
+fn contract_set_admin<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<State<S>, StateApiType = S>,
+) -> Result<(), Error> {
+    let state = host.state_mut();
+    ensure!(sender_is_admin(ctx, state), Error::NotAuthorized);
+    let new_admin: AccountAddress = ctx.parameter_cursor().get()?;
+    state.admin = new_admin;
     Ok(())
 }
 
@@ -123,36 +159,4 @@ fn view<'b, S: HasStateApi>(
     host: &'b impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<&'b State<S>> {
     Ok(host.state())
-}
-
-#[concordium_cfg_test]
-mod tests {
-    use super::*;
-    use test_infrastructure::*;
-
-    #[concordium_test]
-    /// Test that initializing the contract succeeds with some state.
-    fn test_init() {
-        let mut ctx = TestInitContext::empty();
-
-        let mut state_builder = TestStateBuilder::new();
-
-        let initial_coins: Vec<(PublicKeyEd25519, Amount)> = Vec::new();
-        let parameter_bytes = to_bytes(&initial_coins);
-        ctx.set_parameter(&parameter_bytes);
-
-        let state_result = init(&ctx, &mut state_builder);
-        state_result.expect_report("Contract initialization results in error");
-    }
-
-    #[concordium_test]
-    /// Test redeeming a coin.
-    fn test_redeem() {
-        let mut state_builder = TestStateBuilder::new();
-
-        // Initializing state
-        let _initial_state = State::empty(&mut state_builder);
-
-        let _ctx = TestReceiveContext::empty();
-    }
 }

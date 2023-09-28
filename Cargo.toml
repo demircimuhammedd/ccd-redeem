@@ -5,7 +5,7 @@ name = "ccd_redeem"
 version = "0.1.0"
 edition = "2021"
 license = "MPL-2.0"
-authors = [ "Danil Annenkov <danil.v.annenkov@gmail.com>" ]
+authors = [ "Concordium scientists" ]
 description = "Convert your physical ccd coin to ccds in your wallet"
 
 [features]
@@ -15,6 +15,9 @@ wee_alloc = ["concordium-std/wee_alloc"]
 
 [dependencies]
 concordium-std = {version = "8.0", default-features = false}
+
+[dev-dependencies]
+concordium-smart-contract-testing = "3.0"
 
 [lib]
 crate-type=["cdylib", "rlib"]
