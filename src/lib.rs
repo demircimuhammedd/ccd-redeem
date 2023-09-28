@@ -4,63 +4,117 @@
 use concordium_std::*;
 use core::fmt::Debug;
 
-/// Your smart contract state.
-#[derive(Serialize, SchemaType)]
-pub struct State {
-    // Your state
+#[derive(Serialize)]
+struct CoinState {
+    amount: Amount,
+    is_redeemed: bool,
 }
 
-/// Your smart contract errors.
+/// Smart contract state.
+#[derive(Serial, DeserialWithState)]
+#[concordium(state_parameter = "S")]
+pub struct State<S> {
+    coins: StateMap<PublicKeyEd25519, CoinState, S>,
+}
+
+impl<S: HasStateApi> State<S> {
+    fn empty(state_builder: &mut StateBuilder<S>) -> Self {
+        State {
+            coins: state_builder.new_map(),
+        }
+    }
+
+    fn redeem(&mut self, key: PublicKeyEd25519) -> Result<Amount, Error> {
+        if let Some(mut c) = self.coins.get_mut(&key) {
+            if c.is_redeemed {
+                Err(Error::CoinAlreadyRedeemed)
+            } else {
+                c.is_redeemed = true;
+                Ok(c.amount)
+            }
+        } else {
+            Err(Error::CoinNotFound)
+        }
+    }
+}
+
+/// Mapping errors related to contract invocations to CustomContractError.
+impl From<TransferError> for Error {
+    fn from(_te: TransferError) -> Self {
+        Self::InvokeTransferError
+    }
+}
+
+/// Smart contract errors.
 #[derive(Debug, PartialEq, Eq, Reject, Serial, SchemaType)]
 enum Error {
     /// Failed parsing the parameter.
     #[from(ParseError)]
     ParseParams,
-    /// Your error
-    YourError,
+    CoinNotFound,
+    CoinAlreadyRedeemed,
+    InvokeTransferError,
+}
+
+#[derive(Serialize, SchemaType)]
+struct InitParam {
+    coins: Vec<(PublicKeyEd25519, Amount)>,
 }
 
 /// Init function that creates a new smart contract.
 #[init(contract = "ccd_redeem")]
 fn init<S: HasStateApi>(
-    _ctx: &impl HasInitContext,
-    _state_builder: &mut StateBuilder<S>,
-) -> InitResult<State> {
-    // Your code
-
-    Ok(State {})
+    ctx: &impl HasInitContext,
+    state_builder: &mut StateBuilder<S>,
+) -> InitResult<State<S>> {
+    let param: InitParam = ctx.parameter_cursor().get()?;
+    let mut state = State::empty(state_builder);
+    for (key, amount) in param.coins {
+        state.coins.insert(
+            key,
+            CoinState {
+                amount,
+                is_redeemed: false,
+            },
+        );
+    }
+    Ok(state)
 }
 
-/// Receive function. The input parameter is the boolean variable `throw_error`.
-///  If `throw_error == true`, the receive function will throw a custom error.
-///  If `throw_error == false`, the receive function executes successfully.
+#[derive(Serialize, SchemaType)]
+struct RedeemParam {
+    public_key: PublicKeyEd25519,
+    signature: SignatureEd25519,
+    account: AccountAddress,
+}
+
+/// Receive function that redeems the coin corresponding to the public key, if it was not redeemed already.
 #[receive(
     contract = "ccd_redeem",
-    name = "receive",
-    parameter = "bool",
+    name = "redeem",
+    parameter = "RedeemParam",
     error = "Error",
     mutable
 )]
-fn receive<S: HasStateApi>(
+fn contract_redeem<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
-    _host: &mut impl HasHost<State, StateApiType = S>,
+    host: &mut impl HasHost<State<S>, StateApiType = S>,
 ) -> Result<(), Error> {
-    // Your code
+    let param: RedeemParam = ctx.parameter_cursor().get()?;
 
-    let throw_error = ctx.parameter_cursor().get()?; // Returns Error::ParseError on failure
-    if throw_error {
-        Err(Error::YourError)
-    } else {
-        Ok(())
-    }
+    // TODO: verify the signature here!
+    let amount = host.state_mut().redeem(param.public_key)?;
+    host.invoke_transfer(&param.account, amount)?;
+
+    Ok(())
 }
 
 /// View function that returns the content of the state.
 #[receive(contract = "ccd_redeem", name = "view", return_value = "State")]
 fn view<'b, S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    host: &'b impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<&'b State> {
+    host: &'b impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<&'b State<S>> {
     Ok(host.state())
 }
 
@@ -69,68 +123,29 @@ mod tests {
     use super::*;
     use test_infrastructure::*;
 
-    type ContractResult<A> = Result<A, Error>;
-
     #[concordium_test]
     /// Test that initializing the contract succeeds with some state.
     fn test_init() {
-        let ctx = TestInitContext::empty();
+        let mut ctx = TestInitContext::empty();
 
         let mut state_builder = TestStateBuilder::new();
+
+        let initial_coins: Vec<(PublicKeyEd25519, Amount)> = Vec::new();
+        let parameter_bytes = to_bytes(&initial_coins);
+        ctx.set_parameter(&parameter_bytes);
 
         let state_result = init(&ctx, &mut state_builder);
         state_result.expect_report("Contract initialization results in error");
     }
 
     #[concordium_test]
-    /// Test that invoking the `receive` endpoint with the `false` parameter
-    /// succeeds in updating the contract.
-    fn test_throw_no_error() {
-        let ctx = TestInitContext::empty();
-
+    /// Test redeeming a coin.
+    fn test_redeem() {
         let mut state_builder = TestStateBuilder::new();
 
         // Initializing state
-        let initial_state = init(&ctx, &mut state_builder).expect("Initialization should pass");
+        let _initial_state = State::empty(&mut state_builder);
 
-        let mut ctx = TestReceiveContext::empty();
-
-        let throw_error = false;
-        let parameter_bytes = to_bytes(&throw_error);
-        ctx.set_parameter(&parameter_bytes);
-
-        let mut host = TestHost::new(initial_state, state_builder);
-
-        // Call the contract function.
-        let result: ContractResult<()> = receive(&ctx, &mut host);
-
-        // Check the result.
-        claim!(result.is_ok(), "Results in rejection");
-    }
-
-    #[concordium_test]
-    /// Test that invoking the `receive` endpoint with the `true` parameter
-    /// results in the `YourError` being thrown.
-    fn test_throw_error() {
-        let ctx = TestInitContext::empty();
-
-        let mut state_builder = TestStateBuilder::new();
-
-        // Initializing state
-        let initial_state = init(&ctx, &mut state_builder).expect("Initialization should pass");
-
-        let mut ctx = TestReceiveContext::empty();
-
-        let throw_error = true;
-        let parameter_bytes = to_bytes(&throw_error);
-        ctx.set_parameter(&parameter_bytes);
-
-        let mut host = TestHost::new(initial_state, state_builder);
-
-        // Call the contract function.
-        let error: ContractResult<()> = receive(&ctx, &mut host);
-
-        // Check the result.
-        claim_eq!(error, Err(Error::YourError), "Function should throw an error.");
+        let _ctx = TestReceiveContext::empty();
     }
 }
