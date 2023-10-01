@@ -2,13 +2,11 @@ import nacl from "tweetnacl";
 import {Buffer} from 'buffer';
 import {base58_to_binary} from "base58-js"
 
-
 // This function computes the signature of CoinSecret on accountAddr
-function SignAccount(CoinSecret: string, accountAddr: string) {
+function signAccount(CoinSeeed: string, accountAddr: string) {
     try {
         // Decode base58 repesentation of ed25519 seed
-        const seed = base58_to_binary(CoinSecret);
-        console.log(Buffer.from(seed).toString("hex"))
+        const seed = base58_to_binary(CoinSeeed);
         if (seed.length != 32) {
             throw new Error("CoinSecret must be 32 bytes long.");
         }
@@ -24,4 +22,4 @@ function SignAccount(CoinSecret: string, accountAddr: string) {
     }
 }
 
-export default SignAccount;
+export default signAccount;
