@@ -10,10 +10,11 @@ description = "Convert your physical ccd coin to ccds in your wallet"
 
 [features]
 default = ["std"]
-std = ["concordium-std/std"]
+std = ["concordium-std/std", "concordium-cis2/std"]
 wee_alloc = ["concordium-std/wee_alloc"]
 
 [dependencies]
+concordium-cis2 = {version = "5.0", default-features = false}
 concordium-std = {version = "8.0", default-features = false}
 
 [dev-dependencies]

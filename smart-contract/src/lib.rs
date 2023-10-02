@@ -1,8 +1,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+//! # A smart contract to redeem Concordium coins
 
-//! # A Concordium V1 smart contract
+// Use some datatypes to satisfy the CIS-3 standard (even though the package is named `concordium_cis2`)
+use concordium_cis2::*;
 use concordium_std::*;
 use core::fmt::Debug;
+
+/// List of supported entrypoints by the `permit` function (CIS3 standard).
+const SUPPORTS_PERMIT_ENTRYPOINTS: [EntrypointName; 1] =
+    [EntrypointName::new_unchecked("redeem")];
 
 #[derive(Serialize, Clone, Copy, SchemaType)]
 pub struct CoinState {
@@ -404,4 +410,46 @@ fn contract_permit<S: HasStateApi>(
     }
 
     Ok(())
+}
+
+
+/// The parameter type for the contract function `supportsPermit`.
+#[derive(Debug, Serialize, SchemaType)]
+pub struct SupportsPermitQueryParams {
+    /// The list of supportPermit queries.
+    #[concordium(size_length = 2)]
+    pub queries: Vec<OwnedEntrypointName>,
+}
+
+
+/// Get the entrypoints supported by the `permit` function given a
+/// list of entrypoints.
+///
+/// It rejects if:
+/// - It fails to parse the parameter.
+#[receive(
+    contract = "ccd_redeem",
+    name = "supportsPermit",
+    parameter = "SupportsPermitQueryParams",
+    return_value = "SupportsQueryResponse",
+    error = "ContractError"
+)]
+fn contract_supports_permit<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State<S>, StateApiType = S>,
+) -> Result<SupportsQueryResponse, Error> {
+    // Parse the parameter.
+    let params: SupportsPermitQueryParams = ctx.parameter_cursor().get()?;
+
+    // Build the response.
+    let mut response = Vec::with_capacity(params.queries.len());
+    for entrypoint in params.queries {
+        if SUPPORTS_PERMIT_ENTRYPOINTS.contains(&entrypoint.as_entrypoint_name()) {
+            response.push(SupportResult::Support);
+        } else {
+            response.push(SupportResult::NoSupport);
+        }
+    }
+    let result = SupportsQueryResponse::from(response);
+    Ok(result)
 }
