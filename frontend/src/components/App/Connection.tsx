@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { detectConcordiumProvider } from '@concordium/browser-wallet-api-helpers';
+import { Row, Col, Button } from 'react-bootstrap';
 
 interface ConnectionProps {
     verifier: string;
@@ -30,46 +31,18 @@ export default function Connection({ verifier, account, authToken, setAccount, s
     }, [account]);
 
     return (
-        <div className="connection-banner">
-            <h3>Status</h3>
-            {account && (
-                <>
-                    Connected to{' '}
-                    <button
-                        className="link"
-                        type="button"
-                        onClick={() => {
-                            window.open(
-                                `https://testnet.ccdscan.io/?dcount=1&dentity=account&daddress=${account}`,
-                                '_blank',
-                                'noopener,noreferrer'
-                            );
-                        }}
-                    >
-                        {account}{' '}
-                    </button>
-                    <div>
-                        {!authToken && (
-                            <button
-                                className="connect-button"
-                                type="button"
-                                onClick={() => handleAuthorize().catch((e) => alert(e.message))}
-                            >
-                                Authorize
-                            </button>
-                        )}
-                        {authToken && <p>Authorized</p>}
-                    </div>
-                </>
-            )}
+        <>
             {!account && (
                 <>
-                    <p>No wallet connection</p>
-                    <button className="connect-button" type="button" onClick={handleConnect}>
-                        Connect
-                    </button>
+                    <Row>
+                        <Col>
+                            <Button variant="success" onClick={handleConnect}>
+                                Connect Wallet
+                            </Button>
+                        </Col>
+                    </Row>
                 </>
             )}
-        </div>
+        </>
     );
 }
