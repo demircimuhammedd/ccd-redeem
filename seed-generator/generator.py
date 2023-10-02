@@ -53,7 +53,7 @@ def draw_label(label, width, height, info):
     r.strokeColor = colors.HexColor('#ffffff')
     label.add(r)  
     # manual layout for 4 digits
-    s = shapes.String(15, 80+l//2-5, str(amount), fontName="Courier", fontSize=20)
+    s = shapes.String(15, 80+l//2-5, str(amount//1_000_000), fontName="Courier", fontSize=20)
     s.fillColor = colors.HexColor('#ffffff')
     label.add(s) 
 
@@ -80,11 +80,11 @@ def generate_seeds(ccd_amounts: List[int]):
     seeds = [os.urandom(32) for _ in  range(n)]
     b58_seeds = [base58encode(s) for s in seeds]
     keys = [SigningKey(s) for s in seeds]
-    sc_input = [{"pubkey" : k.verify_key.encode(encoder=HexEncoder).decode(), "amount": a} for k,a in zip(keys,ccd_amounts)]
+    sc_input = {"coins" : [[k.verify_key.encode(encoder=HexEncoder).decode(), f"{a}"] for k,a in zip(keys,ccd_amounts)]}
     generate_labels(b58_seeds, ccd_amounts)
     with open('coin-seeds.json', 'w') as f:
         json.dump([f"{s}" for s in b58_seeds], f)    
     with open('sc-input.json', 'w') as f:
         json.dump(sc_input, f)    
 
-generate_seeds([1000 for _ in range(10)])
+generate_seeds([1_000_000_000 for _ in range(10)])
