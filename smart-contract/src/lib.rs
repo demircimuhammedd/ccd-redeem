@@ -4,7 +4,7 @@
 use concordium_std::*;
 use core::fmt::Debug;
 
-#[derive(Serialize, Clone, Copy)]
+#[derive(Serialize, Clone, Copy, SchemaType)]
 pub struct CoinState {
     pub amount: Amount,
     pub is_redeemed: bool,
@@ -225,14 +225,14 @@ fn contract_set_admin<S: HasStateApi>(
     Ok(())
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, SchemaType)]
 pub struct ViewReturnData {
     pub coins: Vec<(PublicKeyEd25519, CoinState)>,
     pub admin: AccountAddress,
 }
 
 /// View function that returns the content of the state.
-#[receive(contract = "ccd_redeem", name = "view", return_value = "State")]
+#[receive(contract = "ccd_redeem", name = "view", return_value = "ViewReturnData")]
 fn view<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
