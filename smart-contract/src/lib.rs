@@ -432,7 +432,7 @@ pub struct SupportsPermitQueryParams {
     name = "supportsPermit",
     parameter = "SupportsPermitQueryParams",
     return_value = "SupportsQueryResponse",
-    error = "ContractError"
+    error = "Error"
 )]
 fn contract_supports_permit<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
