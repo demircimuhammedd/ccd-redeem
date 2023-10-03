@@ -13,7 +13,7 @@ function signAccount(CoinSeeed: string, accountAddr: string) {
         const keys = nacl.sign.keyPair.fromSeed(seed)
         // Decode account address and sign it with key
         const message = Buffer.from(accountAddr, 'hex');
-        const signature = nacl.sign(message,keys.secretKey)
+        const signature = nacl.sign.detached(message,keys.secretKey)
         const hexSignature = Buffer.from(signature).toString('hex')
         const hexPubKey = Buffer.from(keys.publicKey).toString('hex')
         return {message: accountAddr, pubkey: hexPubKey, signature: hexSignature}
