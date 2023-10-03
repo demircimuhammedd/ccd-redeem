@@ -19,6 +19,7 @@ concordium-std = {version = "8.0", default-features = false}
 
 [dev-dependencies]
 concordium-smart-contract-testing = "3.0"
+hex = "0.4.3"
 
 [lib]
 crate-type=["cdylib", "rlib"]
