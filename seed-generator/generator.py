@@ -1,4 +1,4 @@
-# This script generates Ed25519 private key seeds and saves them in json file and as labels in a pdf.
+# This script generates the Ed25519 private key seeds for reedamble coins
 
 from nacl.signing import SigningKey
 from nacl.encoding import HexEncoder
@@ -10,6 +10,7 @@ import json
 from reportlab.graphics import shapes
 from reportlab.lib import colors
 
+# Simple base58 encoding (no base58check)
 def base58encode(msg:bytes) -> bytes:
     ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     m = int.from_bytes(msg,byteorder='big')
@@ -19,7 +20,7 @@ def base58encode(msg:bytes) -> bytes:
         output = ALPHABET[r:r+1] + output
     return output
 
-# from pylabels example code
+# from pylabels example code, 
 def draw_label(label, width, height, info):
     msgs,amount = info
     # QR code as side length of ~70pts (about an inch)
@@ -77,6 +78,7 @@ def generate_labels(seeds: List[bytes], amounts: List[int]):
 
 def generate_seeds(ccd_amounts: List[int]):
     n = len(ccd_amounts)
+    # Good enough randomness for this demo
     seeds = [os.urandom(32) for _ in  range(n)]
     b58_seeds = [base58encode(s) for s in seeds]
     keys = [SigningKey(s) for s in seeds]

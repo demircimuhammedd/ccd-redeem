@@ -12,7 +12,7 @@ The script requires python 3.10+ and the following packages:
 - `pylabels`
 - `reportlab`
 
-which can be installed using `pip`.
+which can be installed using `pip` (best in a virtual environment)
 
 ## Usage
 
@@ -20,6 +20,6 @@ Adapt the number of coins, amount per coin, and the label layout in `generator.p
 
 The outputs are:
 
-- `coin-labels.pdf` the pdf for the labels
-- `coin-seeds.json` the list of seeds
-- `sc-input.json` list of ed25519 public keys with corresponding amounts
+- `coin-labels.pdf` PDF file for printing labels with seed in base58 format
+- `coin-seeds.json` JSON array of seed in base58 format
+- `sc-input.json` JSON file with tuples (pub_key, amount) where pub_key is hex encode and amount is in microccd. This allows to initalize the coin smart contract
