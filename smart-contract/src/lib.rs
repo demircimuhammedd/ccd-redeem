@@ -101,7 +101,7 @@ pub struct InitParam {
 /// Init function that creates a new smart contract.
 /// Adds the coins provided as input to the state and sets the account that
 /// deployed the contract to be the contract's admin.
-#[init(contract = "ccd_redeem", payable)]
+#[init(contract = "ccd_redeem", parameter = "InitParam", payable)]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     state_builder: &mut StateBuilder<S>,
@@ -110,6 +110,7 @@ fn init<S: HasStateApi>(
     let param: InitParam = ctx.parameter_cursor().get()?;
     let admin = ctx.init_origin();
     let mut state = State::empty(state_builder, admin);
+    // TODO: check that the CCD amount is equal to the sum of all amounts in the initial coin list.
     for (key, amount) in param.coins {
         state.coins.insert(key, CoinState::from_amount(amount));
     }
@@ -185,14 +186,17 @@ pub struct IssueParam {
     name = "issue",
     parameter = "IssueParam",
     error = "Error",
+    payable,
     mutable
 )]
 fn contract_issue<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
+    _amount: Amount,
 ) -> Result<(), Error> {
     let param: IssueParam = ctx.parameter_cursor().get()?;
 
+    // TODO: check that the CCD amount is equal to the sum of all amounts in the coin list.
     for (key, amount) in param.coins {
         let res = host
             .state_mut()

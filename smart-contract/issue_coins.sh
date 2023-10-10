@@ -1,0 +1,1 @@
+concordium-client contract update $1 --entrypoint issue --sender $2 --parameter-json issue_coins.json --energy 10000 --amount 100 --grpc-ip node.testnet.concordium.com

@@ -1,0 +1,1 @@
+concordium-client module deploy target/concordium/wasm32-unknown-unknown/release/ccd_redeem.wasm.v1 --sender $1 --grpc-ip node.testnet.concordium.com

@@ -1,0 +1,1 @@
+concordium-client contract invoke $1 --entrypoint view --grpc-ip node.testnet.concordium.com

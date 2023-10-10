@@ -1,0 +1,1 @@
+concordium-client contract init 982d1a31b49836f29b6b0d6d449f08f53f79e8955da11634574983ecc21a58cc --sender $1 --contract ccd_redeem --energy 30000 --amount 100 --parameter-json init.json --grpc-ip node.testnet.concordium.com
