@@ -5,13 +5,15 @@ use concordium_smart_contract_testing::*;
 use concordium_std::{PublicKeyEd25519, SignatureEd25519};
 use hex::FromHex;
 
+const AMOUNT: Amount = Amount::from_ccd(10);
+
 const ACCOUNT_0: AccountAddress = AccountAddress([0; 32]);
 const ACC_INITIAL_BALANCE_0: Amount = Amount::from_ccd(200);
 
 const ACCOUNT_1: AccountAddress = AccountAddress([1; 32]);
 const ACC_INITIAL_BALANCE_1: Amount = Amount::from_ccd(100);
 
-const INITIAL_CONTRACT_BALANCE: Amount = Amount::from_ccd(100);
+const INITIAL_CONTRACT_BALANCE: Amount = AMOUNT;
 
 const SIGNATURE: SignatureEd25519 = SignatureEd25519([
     11, 207, 228, 210, 226, 6, 107, 5, 236, 132, 134, 202, 65, 1, 111, 67, 93, 100, 177, 165, 253,
@@ -24,8 +26,6 @@ const PUBLIC_KEY: PublicKeyEd25519 = PublicKeyEd25519([
     112, 87, 57, 61, 254, 196, 118, 51, 33, 233, 132, 233, 235, 220, 202, 230, 221, 122, 152, 13,
     52, 91, 43, 58, 247, 61, 234, 223, 107, 75, 124, 13,
 ]);
-
-const AMOUNT: Amount = Amount::from_ccd(10);
 
 // Seed: 9758DFD6DD81F57FA9AE75B3C92BED49B3C26C28723CEA00C9E1851CAED7BBF4
 // Use to generate keys and signatures: https://cyphr.me/ed25519_tool/ed.html
@@ -47,8 +47,9 @@ fn prepare(chain: &mut Chain) -> ModuleDeploySuccess {
 fn initialize(
     chain: &mut Chain,
     deployment: &ModuleDeploySuccess,
+    coins: Vec<(PublicKeyEd25519, Amount)>,
+    amount: Amount,
 ) -> Result<ContractInitSuccess, ContractInitError> {
-    let coins = vec![(PUBLIC_KEY, AMOUNT)];
     let param_bytes = OwnedParameter::from_serial(&InitParam { coins })
         .expect("Parameters should be serialized successfully");
 
@@ -60,7 +61,7 @@ fn initialize(
             mod_ref: deployment.module_reference,
             init_name: OwnedContractName::new_unchecked("init_ccd_redeem".to_string()),
             param: param_bytes,
-            amount: INITIAL_CONTRACT_BALANCE,
+            amount: amount,
         },
     )
 }
@@ -72,7 +73,29 @@ fn test_init() {
 
     let deployment = prepare(&mut chain);
 
-    initialize(&mut chain, &deployment).expect("Initialization should always succeed");
+    let coins = vec![(PUBLIC_KEY, AMOUNT)];
+
+    initialize(&mut chain, &deployment, coins, INITIAL_CONTRACT_BALANCE)
+        .expect("Initialization should always succeed");
+}
+
+#[test]
+/// Test that initializing the contract fails because the ccd amount does not
+/// match the sum of coin amounts in the init parameters.
+fn test_init_fails_amount_mismatch() {
+    let mut chain = Chain::new();
+
+    let coins = vec![
+        (PUBLIC_KEY, AMOUNT),
+        (PublicKeyEd25519([0u8; 32]), Amount::from_ccd(10)),
+    ];
+
+    let deployment = prepare(&mut chain);
+
+    assert!(
+        initialize(&mut chain, &deployment, coins, INITIAL_CONTRACT_BALANCE).is_err(),
+        "Initialization is expected to fail"
+    );
 }
 
 #[test]
@@ -82,8 +105,10 @@ fn test_redeem() {
 
     let deployment = prepare(&mut chain);
 
-    let init_info =
-        initialize(&mut chain, &deployment).expect("Initialization should always succeed");
+    let coins = vec![(PUBLIC_KEY, AMOUNT)];
+
+    let init_info = initialize(&mut chain, &deployment, coins, INITIAL_CONTRACT_BALANCE)
+        .expect("Initialization should always succeed");
 
     let param = OwnedParameter::from_serial(&RedeemParam {
         public_key: PUBLIC_KEY,
@@ -136,16 +161,18 @@ fn test_redeem() {
 #[test]
 fn test_encoding() {
     //Initialize contract with public key from 'generator.py'
-    let buffer = <[u8; 32]>::from_hex("0e74d2be36734c232e527b2ecc8d981ec898979f860359220274acf9c6def8f9").expect("Hex decoding pk should work");
+    let buffer =
+        <[u8; 32]>::from_hex("0e74d2be36734c232e527b2ecc8d981ec898979f860359220274acf9c6def8f9")
+            .expect("Hex decoding pk should work");
     let pubkey = PublicKeyEd25519(buffer);
     //Initialize redeeming account from base58 string
     let account_str = "4r81HqikiXBfwxjNJKJAWdw6an2jq4aGSZZAy8fM3fQ9a7x9mH";
-    let account_addr = AccountAddress::from_str(account_str).expect("Can decode account from base58");
+    let account_addr =
+        AccountAddress::from_str(account_str).expect("Can decode account from base58");
     println!("{:?}", account_addr.0);
     //Initialize signature on account address from hex signature as produced by dapp
     let buffer = <[u8; 64]>::from_hex("f7cef8a2afcc2b9ab10da90289610ecbfd4bd95043990145120e3c4b47a3b9a0e0d25fa686869beb1da504aa5a2dc7573fd0a5bf7e67fd6414e33614c8518703").expect("Hex decoding sig should work");
     let signature = SignatureEd25519(buffer);
-
 
     // Setup chain and module
     let mut chain = Chain::new();
@@ -164,17 +191,19 @@ fn test_encoding() {
     let coins = vec![(pubkey, AMOUNT)];
     let param_bytes = OwnedParameter::from_serial(&InitParam { coins })
         .expect("Parameters should be serialized successfully");
-    let init_info = chain.contract_init(
-        Signer::with_one_key(),
-        ACCOUNT_0,
-        Energy::from(10000),
-        InitContractPayload {
-            mod_ref: deployment.module_reference,
-            init_name: OwnedContractName::new_unchecked("init_ccd_redeem".to_string()),
-            param: param_bytes,
-            amount: INITIAL_CONTRACT_BALANCE,
-        },
-    ).expect("Initialization should always succeed");
+    let init_info = chain
+        .contract_init(
+            Signer::with_one_key(),
+            ACCOUNT_0,
+            Energy::from(10000),
+            InitContractPayload {
+                mod_ref: deployment.module_reference,
+                init_name: OwnedContractName::new_unchecked("init_ccd_redeem".to_string()),
+                param: param_bytes,
+                amount: INITIAL_CONTRACT_BALANCE,
+            },
+        )
+        .expect("Initialization should always succeed");
 
     // Craft redeem call
     let param = OwnedParameter::from_serial(&RedeemParam {
@@ -198,6 +227,71 @@ fn test_encoding() {
             },
         )
         .expect("Contract call succeeds");
+}
 
-    
+#[test]
+/// Test redeeming a coin.
+fn test_issue() {
+    let mut chain = Chain::new();
+
+    let pk1 = PublicKeyEd25519([0u8; 32]);
+
+    let second_amount = Amount::from_ccd(50);
+
+    let deployment = prepare(&mut chain);
+
+    let init_info = initialize(&mut chain, &deployment, Vec::new(), Amount::zero())
+        .expect("Initialization should always succeed");
+
+    let coins = vec![(PUBLIC_KEY, AMOUNT), (pk1, second_amount)];
+
+    let param = OwnedParameter::from_serial(&IssueParam { coins })
+        .expect("Parameters should be serialized successfully");
+
+    chain
+        .contract_update(
+            Signer::with_one_key(),
+            ACCOUNT_1,
+            Address::Account(ACCOUNT_1),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: AMOUNT + second_amount,
+                address: init_info.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("ccd_redeem.issue".to_string()),
+                message: param,
+            },
+        )
+        .expect("Contract call succeeds");
+
+    let res = chain
+        .contract_invoke(
+            ACCOUNT_1,
+            Address::Account(ACCOUNT_1),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: init_info.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("ccd_redeem.view".to_string()),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Contract view call succeeds");
+    let result = from_bytes::<ViewReturnData>(res.return_value.as_slice())
+        .expect("Data deserialized successfully");
+    assert_eq!(
+        *result
+            .coins
+            .get(0)
+            .expect("First element expected to exist"),
+        (pk1, CoinState::from_amount(second_amount)),
+        "Coin data does not match"
+    );
+    assert_eq!(
+        *result
+            .coins
+            .get(1)
+            .expect("Second element expected to exist"),
+        (PUBLIC_KEY, CoinState::from_amount(AMOUNT)),
+        "Coin data does not match"
+    );
 }

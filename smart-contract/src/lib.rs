@@ -7,10 +7,9 @@ use concordium_std::*;
 use core::fmt::Debug;
 
 /// List of supported entrypoints by the `permit` function (CIS3 standard).
-const SUPPORTS_PERMIT_ENTRYPOINTS: [EntrypointName; 1] =
-    [EntrypointName::new_unchecked("redeem")];
+const SUPPORTS_PERMIT_ENTRYPOINTS: [EntrypointName; 1] = [EntrypointName::new_unchecked("redeem")];
 
-#[derive(Serialize, Clone, Copy, SchemaType)]
+#[derive(Serialize, Clone, Copy, SchemaType, PartialEq, Eq, Debug)]
 pub struct CoinState {
     pub amount: Amount,
     pub is_redeemed: bool,
@@ -18,7 +17,7 @@ pub struct CoinState {
 
 impl CoinState {
     // Create a new coin that is not redeemed.
-    fn from_amount(amount: Amount) -> Self {
+    pub fn from_amount(amount: Amount) -> Self {
         CoinState {
             amount,
             is_redeemed: false,
@@ -74,6 +73,7 @@ enum Error {
     Expired,
     MissingAccount,
     MalformedSignatureData,
+    AmountDoesNotMatch,
 }
 
 /// Mapping errors related to contract invocations to CustomContractError.
@@ -105,12 +105,23 @@ pub struct InitParam {
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     state_builder: &mut StateBuilder<S>,
-    _amount: Amount,
+    amount: Amount,
 ) -> InitResult<State<S>> {
     let param: InitParam = ctx.parameter_cursor().get()?;
     let admin = ctx.init_origin();
     let mut state = State::empty(state_builder, admin);
-    // TODO: check that the CCD amount is equal to the sum of all amounts in the initial coin list.
+
+    // check that the CCD amount is equal to the sum of all amounts in the initial coin list.
+    ensure_eq!(
+        param
+            .coins
+            .clone()
+            .into_iter()
+            .fold(Amount::zero(), |acc, x| acc + x.1),
+        amount,
+        Error::AmountDoesNotMatch.into()
+    );
+
     for (key, amount) in param.coins {
         state.coins.insert(key, CoinState::from_amount(amount));
     }
@@ -192,11 +203,21 @@ pub struct IssueParam {
 fn contract_issue<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
-    _amount: Amount,
+    amount: Amount,
 ) -> Result<(), Error> {
     let param: IssueParam = ctx.parameter_cursor().get()?;
 
-    // TODO: check that the CCD amount is equal to the sum of all amounts in the coin list.
+    // check that the CCD amount is equal to the sum of all amounts in the coin list.
+    ensure_eq!(
+        param
+            .coins
+            .clone()
+            .into_iter()
+            .fold(Amount::zero(), |acc, x| acc + x.1),
+        amount,
+        Error::AmountDoesNotMatch
+    );
+
     for (key, amount) in param.coins {
         let res = host
             .state_mut()
@@ -242,7 +263,11 @@ pub struct ViewReturnData {
 }
 
 /// View function that returns the content of the state.
-#[receive(contract = "ccd_redeem", name = "view", return_value = "ViewReturnData")]
+#[receive(
+    contract = "ccd_redeem",
+    name = "view",
+    return_value = "ViewReturnData"
+)]
 fn view<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
@@ -416,7 +441,6 @@ fn contract_permit<S: HasStateApi>(
     Ok(())
 }
 
-
 /// The parameter type for the contract function `supportsPermit`.
 #[derive(Debug, Serialize, SchemaType)]
 pub struct SupportsPermitQueryParams {
@@ -424,7 +448,6 @@ pub struct SupportsPermitQueryParams {
     #[concordium(size_length = 2)]
     pub queries: Vec<OwnedEntrypointName>,
 }
-
 
 /// Get the entrypoints supported by the `permit` function given a
 /// list of entrypoints.
