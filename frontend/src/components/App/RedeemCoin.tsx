@@ -103,7 +103,7 @@ function RedeemCoin() {
             }
             else {
                 setGoodSeed(false)
-                setErrorMessage("Provided seed invalid")
+                setErrorMessage("Provided seed is invalid.")
             }
         }, []);
 
@@ -139,7 +139,7 @@ function RedeemCoin() {
                                 0
                             )
                                 .then(txHash => walletClient.getGrpcClient().waitForTransactionFinalization(txHash))
-                                .then(res => { if (isRejectTransaction(res.summary)) { setErrorMessage("Rejected"); console.log(getTransactionRejectReason(res.summary)) } else setSCPayload({ account: account, pubkey: unwrap(output.pubkey)}) })
+                                .then(res => { if (isRejectTransaction(res.summary)) { setErrorMessage("Could not reedeem coin!"); console.log(getTransactionRejectReason(res.summary)) } else setSCPayload({ account: account, pubkey: unwrap(output.pubkey) }) })
                         })
                         .catch(err => console.log(err))
                 }
@@ -221,19 +221,13 @@ function RedeemCoin() {
                 }
                 {scPayload && (
                     <>
-                        <Row >
-                            <Col>
-                                <h2>Successfully reedemed</h2>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <div>
-                                    {scPayload.pubkey ? <p>Coin public key: { scPayload.pubkey }</p> : null}
-                                    {scPayload.account ? <p>To account: {scPayload.account}</p> : null}
-                                </div>
-                            </Col>
-                        </Row>
+                        <Alert variant="success">
+                            <Alert.Heading>Successfully reedemed</Alert.Heading>
+                            <div>
+                                {scPayload.pubkey ? <p>Coin public key: {scPayload.pubkey}</p> : null}
+                                {scPayload.account ? <p>To account: {scPayload.account}</p> : null}
+                            </div>
+                        </Alert>
                     </>
                 )}
             </Container>
