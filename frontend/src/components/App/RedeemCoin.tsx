@@ -55,6 +55,7 @@ function RedeemCoin() {
 
     const contractAddress = {
         index: 6952n,
+        // index: 7048n, // a contract instance with 10 x 1000 ccd coins printed out for demo
         subindex: 0n,
     };
 
