@@ -1,6 +1,6 @@
 import { SchemaType, detectConcordiumProvider } from "@concordium/browser-wallet-api-helpers";
 import { CcdAmount, AccountTransactionType, unwrap, isRejectTransaction, getTransactionRejectReason } from '@concordium/web-sdk';
-import { Alert, Button, Col, Container, Row, Form } from "react-bootstrap";
+import { Alert, Button, Col, Container, Row, Form, Card, Spinner } from "react-bootstrap";
 import { useCallback, useEffect, useState } from 'react';
 import SignAccount from "./coinSignature";
 import Connection from "./Connection";
@@ -40,6 +40,16 @@ const SCHEMAS = {
     }
 }
 
+function getErrorMsg(error){
+    switch(error.rejectReason) {
+        case -3:
+            return "Coin is already redeemed or does not exist."
+        default:
+            return "Unspecified error"
+    }
+}
+
+
 type Result = {
     account: string,
     pubkey: string,
@@ -63,16 +73,28 @@ function RedeemCoin() {
 
     const [newCoinSeed, setNewCoinSeed] = useState<string>('');
 
+    enum RedeemState {
+        Initial,
+        GoodSeed,
+        Redeeming,
+        RedeemSuccess,
+        RedeemFailure
+    }
+
+    const [redeemState, setRedeemState] = useState<RedeemState>();
+
     const [goodSeed, setGoodSeed] = useState<boolean>();
 
-    const [account, setAccount] = useState<string>();
+    const [attempedRedeem, setAttemptedRedeem] = useState<boolean>();
 
-    const [coinSecret, setCoinSecret] = useState<string>('');
+    const [account, setAccount] = useState<string>();
 
     const [errorMessage, setErrorMessage] = useState<string>('');
 
     //Remove once we have a backend
     const [scPayload, setSCPayload] = useState<Result | undefined>(undefined);
+
+
 
     useEffect(
         () => {
@@ -99,20 +121,22 @@ function RedeemCoin() {
     useEffect(
         () => {
             if (coinSeed && checkSeed(coinSeed)) {
-                setGoodSeed(true)
+                setRedeemState(RedeemState.GoodSeed)
             }
             else {
-                setGoodSeed(false)
+                setRedeemState(RedeemState.Initial)
                 setErrorMessage("Provided seed is invalid.")
             }
         }, []);
 
     const handleSubmitSign = useCallback(
         () => {
-            if (account && coinSeed && goodSeed) {
+            if (account && coinSeed && redeemState == RedeemState.GoodSeed) {
+                setRedeemState(RedeemState.Redeeming)
                 const output = SignAccount(coinSeed, account);
                 if (output.e) {
                     setErrorMessage(output.e.toString())
+                    setRedeemState(RedeemState.RedeemFailure)
                 } else {
                     let param = {
                         public_key: unwrap(output.pubkey),
@@ -139,13 +163,17 @@ function RedeemCoin() {
                                 0
                             )
                                 .then(txHash => walletClient.getGrpcClient().waitForTransactionFinalization(txHash))
-                                .then(res => { if (isRejectTransaction(res.summary)) { setErrorMessage("Could not reedeem coin!"); console.log(getTransactionRejectReason(res.summary)) } else setSCPayload({ account: account, pubkey: unwrap(output.pubkey) }) })
+                                .then(res => { if (isRejectTransaction(res.summary)) {setRedeemState(RedeemState.RedeemFailure); setErrorMessage("Could not reedeem coin! " + getErrorMsg(getTransactionRejectReason(res.summary))); console.log(getTransactionRejectReason(res.summary)) } else {setSCPayload({ account: account, pubkey: unwrap(output.pubkey) }); setRedeemState(RedeemState.RedeemSuccess)} })
                         })
-                        .catch(err => console.log(err))
+                        .catch(err => {
+                            console.log(err);
+                            setErrorMessage(err.toString())
+                            setRedeemState(RedeemState.RedeemFailure)
+                        })
                 }
             }
         },
-        [account, coinSeed, goodSeed],
+        [account, coinSeed, redeemState],
     );
 
     return (
@@ -155,20 +183,20 @@ function RedeemCoin() {
                     <>
                         <Row>
                             <Col>
-                                <Alert key="warning" variant="warning">
+                                <Alert key="danger" variant="danger">
                                     {errorMessage}
                                 </Alert>
                             </Col>
                         </Row>
                     </>
                 )}
-                <Row >
-                    <Col>
-                        <h1>Redeemable Coins</h1>
-                    </Col>
-                </Row>
-                {!goodSeed && (
+                {redeemState == RedeemState.Initial && (
                     <>
+                        <Row >
+                            <Col>
+                                <h1>Redeemable Coins</h1>
+                            </Col>
+                        </Row>
                         <Row className="mb-3">
                             <Col>
                                 <Form.Label htmlFor="coinSeed">Coin Seed</Form.Label>
@@ -193,7 +221,7 @@ function RedeemCoin() {
                     </>
                 )
                 }
-                {goodSeed && (
+                {redeemState == RedeemState.GoodSeed && (
                     <>
                         <Connection
                             verifier="a"
@@ -202,24 +230,29 @@ function RedeemCoin() {
                             setAccount={setAccount}
                             setAuthToken={() => { }}
                         />
-                        <Row>
-                            <Col className="text-start">
-                                <div>Redeem coin</div>
-                                <strong>{coinSeed}</strong>
-                                <div>for account</div>
-                                <strong>{account}</strong>
-                                <div>?</div>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <Button variant="primary" onClick={handleSubmitSign}>Redeem!</Button>
-                            </Col>
-                        </Row>
+                        <Card>
+                        <Card.Body>
+                            <Card.Title>
+                                Redeem Coin
+                            </Card.Title>
+                            <Card.Text>
+                            This will redeem coin <strong>{coinSeed}</strong> for account <strong>{account}</strong>.
+                            </Card.Text>
+                            <Button variant="primary" onClick={handleSubmitSign}>Redeem!</Button>
+                        </Card.Body>
+                        </Card>
                     </>
                 )
                 }
-                {scPayload && (
+                {redeemState == RedeemState.Redeeming && (
+                    <>
+                        <Spinner animation="border" role="status">
+                        <span className="visually-hidden">Redeeming...</span>
+                        </Spinner>
+                    </>
+                )
+                }
+                {redeemState == RedeemState.RedeemSuccess && scPayload && (
                     <>
                         <Alert variant="success">
                             <Alert.Heading>Successfully reedemed</Alert.Heading>
