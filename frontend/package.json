@@ -18,7 +18,9 @@
         "bootstrap": "^5.3.2",
         "react": "^18.2.0",
         "react-bootstrap": "^2.8.0",
+        "react-bootstrap-icons": "^1.10.3",
         "react-dom": "^18.2.0",
+        "react-qr-reader": "^3.0.0-beta-1",
         "react-router-dom": "^6.4.0",
         "tweetnacl": "1.0.3",
         "wif": "4.0.0"
