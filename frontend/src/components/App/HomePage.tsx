@@ -1,30 +1,30 @@
 import { useEffect, useState } from "react";
 import { Container, Row, Col, Button, Form, Alert } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { QrReader } from 'react-qr-reader';
 import { BackspaceFill, QrCodeScan } from "react-bootstrap-icons";
 
 function HomePage() {
 
+  const navigate = useNavigate();
+
   enum HomeState {
     Initial,
     QRScan,
-    QRGoodScan,
-    QRFailure,
   }
 
   const [homeState, setHomeState] = useState<HomeState>();
   const [coinSeed, setCoinSeed] = useState<string>('');
 
   const handleQR = (result,error) => {
+
       if(error){
         console.log(error)
       }
       if(result){
         console.log(result);
         if(result.text){
-          setHomeState(HomeState.QRGoodScan)
-          setCoinSeed(result.text)
+          return navigate("/redeem/"+result.text);
         }
       }
   };
@@ -45,7 +45,7 @@ function HomePage() {
           </Row>
           <Row className="align-items-end">
             <Col sm={2}>
-              <Button variant="secondary" onClick={() => {setHomeState(HomeState.QRScan)}}><QrCodeScan/> Scan Code</Button>
+              <Button variant="secondary" onClick={() => {setHomeState(HomeState.QRScan)}}><QrCodeScan className="align-middle"/> Scan Code</Button>
             </Col>
             <Col className="text-start">
               <Form.Label htmlFor="coinSeed">Coin Seed</Form.Label>
@@ -62,9 +62,13 @@ function HomePage() {
             </Col>
           </Row>
           <Row>
+            <Col sm={2}>
+            </Col>
+            <Col className="text-start">
             <Form.Text id="coinSeedHelpBlock" as={Col} muted className="text-start">
               You can find the seed on the inside of the label on your coin.
             </Form.Text>
+            </Col>
           </Row>
         </>
       )}
@@ -83,32 +87,6 @@ function HomePage() {
               onResult={(result, error) => {handleQR(result,error)}}
             />
           </Row>            
-        </>
-      )} 
-      {homeState == HomeState.QRGoodScan && (
-        <>
-          <Row className="align-items-end">
-            <Col>
-              Scan Result: {coinSeed}
-            </Col>
-            <Col sm={2}>
-              <Link to={'/redeem/' + coinSeed} ><Button variant="primary">Redeem</Button></Link>
-            </Col>
-          </Row>        
-        </>
-      )}
-      {homeState == HomeState.QRFailure && (
-        <>
-          <Row >
-            <Col sm={2}>
-              <Button variant="secondary" onClick={() => {setHomeState(HomeState.Initial)}}><BackspaceFill/>Go Back</Button>
-            </Col>
-            <Col>
-                <Alert key="danger" variant="danger">
-                  Could not scan QR code.
-                </Alert>
-            </Col>
-          </Row>    
         </>
       )}
     </Container>

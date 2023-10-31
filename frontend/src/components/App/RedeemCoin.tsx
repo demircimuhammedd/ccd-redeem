@@ -1,11 +1,12 @@
 import { SchemaType, detectConcordiumProvider } from "@concordium/browser-wallet-api-helpers";
 import { CcdAmount, AccountTransactionType, unwrap, isRejectTransaction, getTransactionRejectReason } from '@concordium/web-sdk';
-import { Alert, Button, Col, Container, Row, Form, Card, Spinner } from "react-bootstrap";
+import { Alert, Button, Col, Container, Row, Card, Spinner } from "react-bootstrap";
 import { useCallback, useEffect, useState } from 'react';
 import SignAccount from "./coinSignature";
 import Connection from "./Connection";
 import { Link, useParams } from "react-router-dom";
 import checkSeed from "./checkSeed";
+import { BackspaceFill } from "react-bootstrap-icons";
 
 const SCHEMAS = {
     "contractName": "ccd_redeem",
@@ -74,7 +75,7 @@ function RedeemCoin() {
     const [newCoinSeed, setNewCoinSeed] = useState<string>('');
 
     enum RedeemState {
-        Initial,
+        NoValidSeed,
         GoodSeed,
         Redeeming,
         RedeemSuccess,
@@ -124,7 +125,7 @@ function RedeemCoin() {
                 setRedeemState(RedeemState.GoodSeed)
             }
             else {
-                setRedeemState(RedeemState.Initial)
+                setRedeemState(RedeemState.NoValidSeed)
                 setErrorMessage("Provided seed is invalid.")
             }
         }, []);
@@ -150,7 +151,7 @@ function RedeemCoin() {
                                 account,
                                 AccountTransactionType.Update,
                                 {
-                                    amount: new CcdAmount(0n),
+                                    amount: CcdAmount.fromMicroCcd(0n),
                                     address: contractAddress,
                                     receiveName: redeemEntrypoint,
                                     maxContractExecutionEnergy: maxCost,
@@ -190,33 +191,10 @@ function RedeemCoin() {
                         </Row>
                     </>
                 )}
-                {redeemState == RedeemState.Initial && (
+                {redeemState == RedeemState.NoValidSeed && (
                     <>
                         <Row >
-                            <Col>
-                                <h1>Redeemable Coins</h1>
-                            </Col>
-                        </Row>
-                        <Row className="mb-3">
-                            <Col>
-                                <Form.Label htmlFor="coinSeed">Coin Seed</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    id="coinSeed"
-                                    placeholder="F5jMLUoz6DJU2Uzth2cEbVKE3XQrUxfJByPNmJFYygjJ"
-                                    aria-describedby="coinSeedHelpBlock"
-                                    value={newCoinSeed}
-                                    onChange={(e) => setNewCoinSeed(e.target.value)}
-                                />
-                                <Form.Text id="coinSeedHelpBlock" muted>
-                                    You can find the seed on the inside of the label on your coin.
-                                </Form.Text>
-                            </Col>
-                        </Row>
-                        <Row className="mb-3">
-                            <Col>
-                                <Link to={'/redeem/' + newCoinSeed} ><Button variant="primary">Redeem</Button></Link>
-                            </Col>
+                            <Link to={'/'} ><Button variant="primary"><BackspaceFill/> Go Back</Button></Link>
                         </Row>
                     </>
                 )
