@@ -63,8 +63,6 @@ function getErrorMsg(error: any) {
     return 'Unspecified error';
 }
 
-function handleTxResult(res: BlockItemSummaryInBlock) {}
-
 type Result = {
     account: string;
     pubkey: string;
