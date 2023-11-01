@@ -2,18 +2,23 @@
     width: 210mm;
     height: 297mm;
     padding: 0mm;
+    padding-top: 2mm;
 }
-.item {
+.item{
     display: inline-block;
-    width: 104mm;
+    width: 105mm;
     height: 57mm;
     padding: 0mm;
+    margin: 0mm;
+    margin-right: -3px;
+    margin-bottom: -3px;
 }
+    
 .coinbg {
     background: #666666;
     width: 70pt;
     height: 70pt;
-    margin-bottom: 3mm;
+    margin: 5pt;
     position: relative
 }
 .coin {
@@ -57,6 +62,7 @@
     border: 0.25mm solid black;
     width: 150pt;
     height: 70pt;
+    margin: 5pt;
     position: relative;
 }
 .qrcode {
