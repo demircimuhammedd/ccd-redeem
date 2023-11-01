@@ -13,22 +13,14 @@ interface ConnectionProps {
 /**
  * Component that allows the user to connect with their wallet and authorize with the backend
  */
-export default function Connection({ verifier, account, authToken, setAccount, setAuthToken }: ConnectionProps) {
+export default function Connection({ account, setAccount }: ConnectionProps) {
     const handleConnect = useCallback(
         () =>
             detectConcordiumProvider()
                 .then((provider) => provider.connect())
                 .then(setAccount),
-        []
+        [],
     );
-
-    const handleAuthorize = useCallback(async () => {
-        if (!account) {
-            throw new Error('Unreachable');
-        }
-        const provider = await detectConcordiumProvider();
-        setAuthToken("0");
-    }, [account]);
 
     return (
         <>
