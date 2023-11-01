@@ -41,13 +41,15 @@ const SCHEMAS = {
     }
 }
 
-function getErrorMsg(error){
+function getErrorMsg(error: any){
+    if(error.rejectReason){
     switch(error.rejectReason) {
         case -3:
             return "Coin is already redeemed or does not exist."
         default:
-            return "Unspecified error"
     }
+    }
+    return "Unspecified error"
 }
 
 
@@ -72,8 +74,6 @@ function RedeemCoin() {
 
     const { coinSeed } = params;
 
-    const [newCoinSeed, setNewCoinSeed] = useState<string>('');
-
     enum RedeemState {
         NoValidSeed,
         GoodSeed,
@@ -84,16 +84,14 @@ function RedeemCoin() {
 
     const [redeemState, setRedeemState] = useState<RedeemState>();
 
-    const [goodSeed, setGoodSeed] = useState<boolean>();
-
-    const [attempedRedeem, setAttemptedRedeem] = useState<boolean>();
-
     const [account, setAccount] = useState<string>();
 
     const [errorMessage, setErrorMessage] = useState<string>('');
 
     //Remove once we have a backend
     const [scPayload, setSCPayload] = useState<Result | undefined>(undefined);
+
+    const zeroCCD = CcdAmount.fromCcd(0n);
 
 
 
@@ -151,7 +149,7 @@ function RedeemCoin() {
                                 account,
                                 AccountTransactionType.Update,
                                 {
-                                    amount: CcdAmount.fromMicroCcd(0n),
+                                    amount: zeroCCD,
                                     address: contractAddress,
                                     receiveName: redeemEntrypoint,
                                     maxContractExecutionEnergy: maxCost,

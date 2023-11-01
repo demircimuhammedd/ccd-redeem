@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Container, Row, Col, Button, Form, Alert } from "react-bootstrap";
+import { Container, Row, Col, Button, Form } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { QrReader } from 'react-qr-reader';
 import { BackspaceFill, QrCodeScan } from "react-bootstrap-icons";
+import { Result } from "@zxing/library";
 
 function HomePage() {
 
@@ -16,16 +17,14 @@ function HomePage() {
   const [homeState, setHomeState] = useState<HomeState>();
   const [coinSeed, setCoinSeed] = useState<string>('');
 
-  const handleQR = (result,error) => {
+  const handleQR = (result: Result|null|undefined,error: any) => {
 
       if(error){
         console.log(error)
       }
       if(result){
         console.log(result);
-        if(result.text){
-          return navigate("/redeem/"+result.text);
-        }
+          return navigate("/redeem/"+result.getText());
       }
   };
 
@@ -84,6 +83,7 @@ function HomePage() {
           </Row>
           <Row >
             <QrReader 
+              constraints={{}}
               onResult={(result, error) => {handleQR(result,error)}}
             />
           </Row>            

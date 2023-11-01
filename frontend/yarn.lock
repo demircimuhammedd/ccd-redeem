@@ -784,6 +784,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:*":
+  version: 20.8.10
+  resolution: "@types/node@npm:20.8.10"
+  dependencies:
+    undici-types: ~5.26.4
+  checksum: 7c61190e43e8074a1b571e52ff14c880bc67a0447f2fe5ed0e1a023eb8a23d5f815658edb98890f7578afe0f090433c4a635c7c87311762544e20dd78723e515
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:>=12.12.47, @types/node@npm:>=13.7.0":
   version: 20.7.1
   resolution: "@types/node@npm:20.7.1"
@@ -845,6 +854,15 @@ __metadata:
   version: 3.0.0
   resolution: "@types/warning@npm:3.0.0"
   checksum: 120dcf90600d583c68a60872200061eab9318ae15ea898581f8e9a6dc71b7941095dd81d8324e36d2a6006e5e12b6fc1cf8eda00cc514ee12bb39a912cc4e040
+  languageName: node
+  linkType: hard
+
+"@types/wif@npm:^2.0.4":
+  version: 2.0.4
+  resolution: "@types/wif@npm:2.0.4"
+  dependencies:
+    "@types/node": "*"
+  checksum: f598a53d6d02865b94c5b96973b1cf6e8daee3a3ca4cb1f1506872d9bd0bf17005113eeabf56eebab13ef8f67005d681e8dfad072657a63ba8bd5c5b855ddda5
   languageName: node
   linkType: hard
 
@@ -1297,7 +1315,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"base58-js@npm:*":
+"base58-js@npm:2.0.0":
   version: 2.0.0
   resolution: "base58-js@npm:2.0.0"
   checksum: 1bd713f704d27b9639275966ad53e08a67f4f25be2258d2cce53ae60120c5848997acca2481e011a72a318fd3ff98261bf30fe0f5eddeae2562d02be82b96190
@@ -1620,10 +1638,11 @@ __metadata:
     "@concordium/web-sdk": "*"
     "@types/react": ^18.2.15
     "@types/react-dom": ^18.2.7
+    "@types/wif": ^2.0.4
     "@typescript-eslint/eslint-plugin": ^6.0.0
     "@typescript-eslint/parser": ^6.0.0
     "@vitejs/plugin-react-swc": ^3.3.2
-    base58-js: "*"
+    base58-js: 2.0.0
     bootstrap: ^5.3.2
     eslint: ^8.45.0
     eslint-config-prettier: ^9.0.0
@@ -4517,6 +4536,13 @@ __metadata:
   peerDependencies:
     react: ">=16.14.0"
   checksum: b685af148e29372ac336c95a7562094c5375d14807b3bc85861708363cb64b29a487f55f9d6eafda8003f21f1ca61c9cce8c83bcea5d94a0ba32bca519ac3be7
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~5.26.4":
+  version: 5.26.5
+  resolution: "undici-types@npm:5.26.5"
+  checksum: 3192ef6f3fd5df652f2dc1cd782b49d6ff14dc98e5dced492aa8a8c65425227da5da6aafe22523c67f035a272c599bb89cfe803c1db6311e44bed3042fc25487
   languageName: node
   linkType: hard
 

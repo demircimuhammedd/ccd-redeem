@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { detectConcordiumProvider } from '@concordium/browser-wallet-api-helpers';
 import { Row, Col, Button } from 'react-bootstrap';
 

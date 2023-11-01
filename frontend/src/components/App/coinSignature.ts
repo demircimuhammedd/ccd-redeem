@@ -1,7 +1,7 @@
 import nacl from "tweetnacl";
 import {Buffer} from 'buffer';
-import {base58_to_binary} from "base58-js"
-import {decode} from "wif"
+import {base58_to_binary} from "base58-js";
+import {decode} from "wif";
 
 // This function computes the signature of CoinSecret on accountAddr
 function signAccount(CoinSeeed: string, accountAddr: string) {
