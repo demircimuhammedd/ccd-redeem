@@ -13,7 +13,7 @@
     },
     "dependencies": {
         "@concordium/browser-wallet-api-helpers": "*",
-        "@concordium/web-sdk": "*",
+        "@concordium/web-sdk": "6",
         "@types/wif": "^2.0.4",
         "base58-js": "2.0.0",
         "bootstrap": "^5.3.2",

@@ -5,7 +5,6 @@ import {
     isRejectTransaction,
     getTransactionRejectReason,
     CcdAmount,
-    BlockItemSummaryInBlock,
 } from '@concordium/web-sdk';
 import { Alert, Button, Col, Container, Row, Card, Spinner } from 'react-bootstrap';
 import { useCallback, useEffect, useState } from 'react';
