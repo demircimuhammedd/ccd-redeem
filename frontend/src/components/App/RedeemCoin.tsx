@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from 'react';
 import SignAccount from './coinSignature';
 import Connection from './Connection';
 import { Link, useParams } from 'react-router-dom';
-import checkSeed from './checkSeed';
+import checkSeed, { SeedError, isPrestineCoin } from './checkSeed';
 import { BackspaceFill } from 'react-bootstrap-icons';
 
 const SCHEMAS = {
@@ -91,6 +91,7 @@ function RedeemCoin() {
     }
 
     const [redeemState, setRedeemState] = useState<RedeemState>();
+    const [coinValue, setCoinValue] = useState<CcdAmount>();
 
     const [account, setAccount] = useState<string>();
 
@@ -120,8 +121,28 @@ function RedeemCoin() {
     }, []);
 
     useEffect(() => {
-        if (coinSeed && checkSeed(coinSeed)) {
-            setRedeemState(RedeemState.GoodSeed);
+        if (coinSeed) {
+            const answer = checkSeed(coinSeed);
+            //Error handling if it is not prestine
+            if(!isPrestineCoin(answer)){
+                setRedeemState(RedeemState.NoValidSeed);
+                switch(answer){
+                    case SeedError.InvalidEncoding:
+                    case SeedError.InvalidLength:
+                        setErrorMessage('Provided seed is invalid.');  
+                        break;
+                    case SeedError.CoinNotFound:
+                        setErrorMessage('Could not find the coin.');  
+                        break;                            
+                    default:
+                        setErrorMessage('Coin already redeemed.');  
+                        break;                           
+                }
+            } else {
+                setCoinValue(answer);
+                setRedeemState(RedeemState.GoodSeed);
+            }
+
         } else {
             setRedeemState(RedeemState.NoValidSeed);
             setErrorMessage('Provided seed is invalid.');
@@ -209,7 +230,7 @@ function RedeemCoin() {
                         </Row>
                     </>
                 )}
-                {redeemState == RedeemState.GoodSeed && (
+                {redeemState == RedeemState.GoodSeed && coinValue && (
                     <>
                         <Connection
                             verifier="a"
@@ -223,7 +244,7 @@ function RedeemCoin() {
                                 <Card.Title>Redeem Coin</Card.Title>
                                 <Card.Text>
                                     This will redeem coin <strong>{coinSeed}</strong> for account{' '}
-                                    <strong>{account}</strong>.
+                                    <strong>{account}</strong>. It's valued at {coinValue.toCcd()} CCD.
                                 </Card.Text>
                                 <Button variant="primary" onClick={handleSubmitSign}>
                                     Redeem!
