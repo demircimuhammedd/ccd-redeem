@@ -1,0 +1,35 @@
+{% if count == 0 %}
+<div class='item'>
+    <div class='coinbg floatright'>
+        <div class='coin'>
+            <div class="innercoin">
+                <div class='amount'>{{amount}}</div>
+            </div>
+        </div>
+    </div>
+    <div class='sticker'>
+        <img class='qrcode' src="{{label_tools.qr_code(seed)}}" />
+        <div class='label'>
+            {{ seed }}
+        </div>
+        <div class='fold'></div>
+    </div>
+</div>
+{% else %}
+<div class='item'>
+    <div class='sticker floatright'>
+        <img class='qrcode' src="{{label_tools.qr_code(seed)}}" />
+        <div class='label'>
+            {{ seed }}
+        </div>
+        <div class='fold'></div>
+    </div>
+    <div class='coinbg'>
+        <div class='coin'>
+            <div class="innercoin">
+                <div class='amount'>{{amount}}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
