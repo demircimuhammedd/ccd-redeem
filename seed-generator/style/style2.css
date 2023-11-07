@@ -1,0 +1,102 @@
+@page {
+    width: 210mm;
+    height: 297mm;
+    padding: 0mm;
+    padding-top: 2mm;
+}
+.item{
+    display: inline-block;
+    width: 105mm;
+    height: 36mm;
+    padding: 0mm;
+    margin: 0mm;
+    margin-right: -3px;
+    margin-bottom: -3px;
+}
+
+.floatright {
+    float: right;
+}
+    
+.coinbg {
+    background: #666666;
+    width: 70pt;
+    height: 70pt;
+    margin: 5pt;
+    position: relative;
+}
+.coin {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateY(-50%) translateX(-50%);
+    width: 65pt;
+    height: 65pt;
+    display: inline-block;
+    border: white solid 1pt;
+    border-radius: 50%;
+    background: black;
+}
+.innercoin{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateY(-50%) translateX(-50%);
+    width: 60pt;
+    height: 60pt;
+    border: white solid 1pt;
+    border-radius: 50%;
+    background: black;    
+    display: inline-block;
+}
+.amount{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateY(-50%) translateX(-50%);
+    font-family: Arial, Verdana, Helvetica, sans;
+    font-weight: bold;
+    font-size: 18pt;
+    color: white;
+    text-align:center;
+    display: table-cell;
+    vertical-align: middle;
+}
+.sticker {
+    border: 0.25mm solid black;
+    width: 150pt;
+    height: 70pt;
+    margin: 5pt;
+    position: relative;
+}
+.qrcode {
+    height: 100%;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    image-rendering: pixelated;
+}
+.label {
+    position: absolute;
+    top: 0;
+    left: 70pt;
+    height: 100%;
+    width: 60pt;
+    padding: 5pt;
+    font-family: Arial, Verdana, Helvetica, sans;
+    font-weight: bold;
+    display: inline-block;
+    font-size: 9pt;
+    overflow-wrap: break-word;
+}
+.fold {
+    height: 100%;
+    width:10pt;
+    border-left: 0.25mm solid black;
+    display: block;
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+  
