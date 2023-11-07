@@ -11,8 +11,8 @@ const VIEW_COIN_ENTRYPOINT_FULL = `${CONTRACT_NAME}.${VIEW_COIN_ENTRYPOINT}`
 const MAX_COST = 30000n;
 
 const CONTRACT_ADDRESS = {
-    index: 7195n,
-    // index: 7048n, // a contract instance with 10 x 1000 ccd coins printed out for demo
+    index: 7211n,
+    // TBD: index of a demo contract.
     subindex: 0n,
 };
 

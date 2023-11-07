@@ -185,23 +185,12 @@ function RedeemCoin() {
                         </Row>
                     </>
                 )}
-                {redeemState == RedeemState.NoValidSeed && (
+                {(redeemState == RedeemState.NoValidSeed) || (redeemState == RedeemState.RedeemFailure) && (
                     <>
                         <Row>
                             <Link to={'/'}>
                                 <Button variant="primary">
                                     <BackspaceFill /> Go Back
-                                </Button>
-                            </Link>
-                        </Row>
-                    </>
-                )}
-                {redeemState == RedeemState.RedeemSuccess && (
-                    <>
-                        <Row>
-                            <Link to={'/'}>
-                                <Button variant="success">
-                                    <Bank /> Redeem more
                                 </Button>
                             </Link>
                         </Row>
@@ -247,6 +236,17 @@ function RedeemCoin() {
                                 {scPayload.account ? <p>To account: {scPayload.account}</p> : null}
                             </div>
                         </Alert>
+                    </>
+                )}
+                {redeemState == RedeemState.RedeemSuccess && (
+                    <>
+                        <Row>
+                            <Link to={'/'}>
+                                <Button variant="success">
+                                    <Bank /> Redeem more
+                                </Button>
+                            </Link>
+                        </Row>
                     </>
                 )}
             </Container>
