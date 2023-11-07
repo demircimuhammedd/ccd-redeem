@@ -257,6 +257,30 @@ fn contract_set_admin<S: HasStateApi>(
 }
 
 #[derive(Serialize, SchemaType)]
+pub struct ViewCoinReturnData {
+    amount: Amount,
+    is_redeemed: bool,
+}
+
+
+/// View function that returns coin value and status (redeemed or not)
+#[receive(
+    contract = "ccd_redeem",
+    name = "viewCoin",
+    parameter = "PublicKeyEd25519",
+    return_value = "ViewCoinReturnData"
+)]
+fn contract_view_coin<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<ViewCoinReturnData> {
+    let param: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
+    let coin_state =
+        host.state().coins.get(&param).ok_or(Error::CoinNotFound)?;
+    Ok(ViewCoinReturnData { amount: coin_state.amount, is_redeemed: coin_state.is_redeemed })
+}
+
+#[derive(Serialize, SchemaType)]
 pub struct ViewReturnData {
     pub coins: Vec<(PublicKeyEd25519, CoinState)>,
     pub admin: AccountAddress,

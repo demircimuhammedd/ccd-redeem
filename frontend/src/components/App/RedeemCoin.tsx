@@ -8,46 +8,12 @@ import {
 } from '@concordium/web-sdk';
 import { Alert, Button, Col, Container, Row, Card, Spinner } from 'react-bootstrap';
 import { useCallback, useEffect, useState } from 'react';
-import SignAccount from './coinSignature';
+import { signAccount } from './coinSignature';
 import Connection from './Connection';
 import { Link, useParams } from 'react-router-dom';
-import checkSeed, { SeedError, isPrestineCoin } from './checkSeed';
-import { BackspaceFill } from 'react-bootstrap-icons';
-
-const SCHEMAS = {
-    contractName: 'ccd_redeem',
-    entrypoints: {
-        issue: {
-            error: 'FQ0AAAALAAAAUGFyc2VQYXJhbXMCDAAAAENvaW5Ob3RGb3VuZAITAAAAQ29pbkFscmVhZHlSZWRlZW1lZAIRAAAAQ29pbkFscmVhZHlFeGlzdHMCDgAAAEludm9rZVRyYW5zZmVyAhEAAABJbnZhbGlkU2lnbmF0dXJlcwINAAAATm90QXV0aG9yaXplZAINAAAAV3JvbmdDb250cmFjdAIPAAAAV3JvbmdFbnRyeVBvaW50Ag0AAABOb25jZU1pc21hdGNoAgcAAABFeHBpcmVkAg4AAABNaXNzaW5nQWNjb3VudAIWAAAATWFsZm9ybWVkU2lnbmF0dXJlRGF0YQI=',
-            parameter: 'FAABAAAABQAAAGNvaW5zEAIPHiAAAAAK',
-        },
-        permit: {
-            parameter:
-                'FAADAAAACQAAAHNpZ25hdHVyZRIAAhIAAhUBAAAABwAAAEVkMjU1MTkBAQAAAB5AAAAABgAAAHNpZ25lcgsHAAAAbWVzc2FnZRQABQAAABAAAABjb250cmFjdF9hZGRyZXNzDAUAAABub25jZQUJAAAAdGltZXN0YW1wDQsAAABlbnRyeV9wb2ludBYBBwAAAHBheWxvYWQQAQI=',
-        },
-        redeem: {
-            error: 'FQ0AAAALAAAAUGFyc2VQYXJhbXMCDAAAAENvaW5Ob3RGb3VuZAITAAAAQ29pbkFscmVhZHlSZWRlZW1lZAIRAAAAQ29pbkFscmVhZHlFeGlzdHMCDgAAAEludm9rZVRyYW5zZmVyAhEAAABJbnZhbGlkU2lnbmF0dXJlcwINAAAATm90QXV0aG9yaXplZAINAAAAV3JvbmdDb250cmFjdAIPAAAAV3JvbmdFbnRyeVBvaW50Ag0AAABOb25jZU1pc21hdGNoAgcAAABFeHBpcmVkAg4AAABNaXNzaW5nQWNjb3VudAIWAAAATWFsZm9ybWVkU2lnbmF0dXJlRGF0YQI=',
-            parameter: 'FAADAAAACgAAAHB1YmxpY19rZXkeIAAAAAkAAABzaWduYXR1cmUeQAAAAAcAAABhY2NvdW50Cw==',
-        },
-        setAdmin: {
-            error: 'FQ0AAAALAAAAUGFyc2VQYXJhbXMCDAAAAENvaW5Ob3RGb3VuZAITAAAAQ29pbkFscmVhZHlSZWRlZW1lZAIRAAAAQ29pbkFscmVhZHlFeGlzdHMCDgAAAEludm9rZVRyYW5zZmVyAhEAAABJbnZhbGlkU2lnbmF0dXJlcwINAAAATm90QXV0aG9yaXplZAINAAAAV3JvbmdDb250cmFjdAIPAAAAV3JvbmdFbnRyeVBvaW50Ag0AAABOb25jZU1pc21hdGNoAgcAAABFeHBpcmVkAg4AAABNaXNzaW5nQWNjb3VudAIWAAAATWFsZm9ybWVkU2lnbmF0dXJlRGF0YQI=',
-            parameter: 'Cw==',
-        },
-        supportsPermit: {
-            error: 'FQ0AAAALAAAAUGFyc2VQYXJhbXMCDAAAAENvaW5Ob3RGb3VuZAITAAAAQ29pbkFscmVhZHlSZWRlZW1lZAIRAAAAQ29pbkFscmVhZHlFeGlzdHMCDgAAAEludm9rZVRyYW5zZmVyAhEAAABJbnZhbGlkU2lnbmF0dXJlcwINAAAATm90QXV0aG9yaXplZAINAAAAV3JvbmdDb250cmFjdAIPAAAAV3JvbmdFbnRyeVBvaW50Ag0AAABOb25jZU1pc21hdGNoAgcAAABFeHBpcmVkAg4AAABNaXNzaW5nQWNjb3VudAIWAAAATWFsZm9ybWVkU2lnbmF0dXJlRGF0YQI=',
-            parameter: 'FAABAAAABwAAAHF1ZXJpZXMQARYB',
-            returnValue: 'EAEVAwAAAAkAAABOb1N1cHBvcnQCBwAAAFN1cHBvcnQCCQAAAFN1cHBvcnRCeQEBAAAAEAAM',
-        },
-        view: {
-            returnValue: 'FAACAAAABQAAAGNvaW5zEAIPHiAAAAAUAAIAAAAGAAAAYW1vdW50CgsAAABpc19yZWRlZW1lZAEFAAAAYWRtaW4L',
-        },
-        viewMessageHash: {
-            parameter:
-                'FAADAAAACQAAAHNpZ25hdHVyZRIAAhIAAhUBAAAABwAAAEVkMjU1MTkBAQAAAB5AAAAABgAAAHNpZ25lcgsHAAAAbWVzc2FnZRQABQAAABAAAABjb250cmFjdF9hZGRyZXNzDAUAAABub25jZQUJAAAAdGltZXN0YW1wDQsAAABlbnRyeV9wb2ludBYBBwAAAHBheWxvYWQQAQI=',
-            returnValue: 'EyAAAAAC',
-        },
-    },
-};
+import checkSeed, { SeedError, isPristineCoin } from './checkSeed';
+import { BackspaceFill, Bank } from 'react-bootstrap-icons';
+import Constants from "./Constants";
 
 function getErrorMsg(error: any) {
     if (error.rejectReason) {
@@ -68,17 +34,8 @@ type Result = {
 };
 
 function RedeemCoin() {
-    const redeemEntrypoint = 'ccd_redeem.redeem';
-
-    const maxCost = 30000n;
 
     const params = useParams();
-
-    const contractAddress = {
-        index: 6952n,
-        // index: 7048n, // a contract instance with 10 x 1000 ccd coins printed out for demo
-        subindex: 0n,
-    };
 
     const { coinSeed } = params;
 
@@ -122,44 +79,49 @@ function RedeemCoin() {
 
     useEffect(() => {
         if (coinSeed) {
-            const answer = checkSeed(coinSeed);
-            //Error handling if it is not prestine
-            if(!isPrestineCoin(answer)){
-                setRedeemState(RedeemState.NoValidSeed);
-                switch(answer){
+            checkSeed(coinSeed).then(answer => {
+                switch (answer) {
                     case SeedError.InvalidEncoding:
                     case SeedError.InvalidLength:
-                        setErrorMessage('Provided seed is invalid.');  
+                        setRedeemState(RedeemState.NoValidSeed);
+                        setErrorMessage('Provided seed is invalid.');
                         break;
                     case SeedError.CoinNotFound:
-                        setErrorMessage('Could not find the coin.');  
-                        break;                            
+                        setRedeemState(RedeemState.NoValidSeed);
+                        setErrorMessage('Could not find the coin.');
+                        break;
+                    case SeedError.DeserializationFailed:
+                        setRedeemState(RedeemState.NoValidSeed);
+                        setErrorMessage('Could not deserialize the response.');
+                        break;
                     default:
-                        setErrorMessage('Coin already redeemed.');  
-                        break;                           
+                        if (isPristineCoin(answer)) {
+                            setCoinValue(new CcdAmount(answer.amount));
+                            console.log(answer);
+                            setRedeemState(RedeemState.GoodSeed);
+                        } else {
+                            setRedeemState(RedeemState.NoValidSeed);
+                            setErrorMessage('Coin already redeemed.');
+                        }
+                        break;
                 }
-            } else {
-                setCoinValue(answer);
-                setRedeemState(RedeemState.GoodSeed);
             }
-
-        } else {
-            setRedeemState(RedeemState.NoValidSeed);
-            setErrorMessage('Provided seed is invalid.');
+            )
         }
     }, []);
 
     const handleSubmitSign = useCallback(() => {
         if (account && coinSeed && redeemState == RedeemState.GoodSeed) {
             setRedeemState(RedeemState.Redeeming);
-            const output = SignAccount(coinSeed, account);
-            if (output.e) {
+            const output = signAccount(coinSeed, account);
+            if (output.e != undefined) {
                 setErrorMessage(output.e.toString());
                 setRedeemState(RedeemState.RedeemFailure);
-            } else {
+            }
+            else {
                 let param = {
-                    public_key: unwrap(output.pubkey),
-                    signature: unwrap(output.signature),
+                    public_key: output.pubkey,
+                    signature: output.signature,
                     account: account,
                 };
                 detectConcordiumProvider()
@@ -170,14 +132,14 @@ function RedeemCoin() {
                                 AccountTransactionType.Update,
                                 {
                                     amount: CcdAmount.fromCcd(0n),
-                                    address: contractAddress,
-                                    receiveName: redeemEntrypoint,
-                                    maxContractExecutionEnergy: maxCost,
+                                    address: Constants.CONTRACT_ADDRESS,
+                                    receiveName: Constants.REDEEM_ENTRYPOINT_FULL,
+                                    maxContractExecutionEnergy: Constants.MAX_COST,
                                 },
                                 param,
                                 {
                                     type: SchemaType.Parameter,
-                                    value: SCHEMAS.entrypoints.redeem.parameter,
+                                    value: Constants.SCHEMAS.entrypoints.redeem.parameter,
                                 },
                                 0,
                             )
@@ -194,6 +156,10 @@ function RedeemCoin() {
                                     setSCPayload({ account: account, pubkey: unwrap(output.pubkey) });
                                     setRedeemState(RedeemState.RedeemSuccess);
                                 }
+                            }).catch(err => {
+                                console.log(err);
+                                setErrorMessage(err.toString());
+                                setRedeemState(RedeemState.RedeemFailure);
                             });
                     })
                     .catch((err) => {
@@ -230,6 +196,17 @@ function RedeemCoin() {
                         </Row>
                     </>
                 )}
+                {redeemState == RedeemState.RedeemSuccess && (
+                    <>
+                        <Row>
+                            <Link to={'/'}>
+                                <Button variant="success">
+                                    <Bank /> Redeem more
+                                </Button>
+                            </Link>
+                        </Row>
+                    </>
+                )}
                 {redeemState == RedeemState.GoodSeed && coinValue && (
                     <>
                         <Connection
@@ -237,14 +214,15 @@ function RedeemCoin() {
                             account={account}
                             authToken="a"
                             setAccount={setAccount}
-                            setAuthToken={() => {}}
+                            setAuthToken={() => { }}
                         />
                         <Card>
                             <Card.Body>
                                 <Card.Title>Redeem Coin</Card.Title>
                                 <Card.Text>
-                                    This will redeem coin <strong>{coinSeed}</strong> for account{' '}
-                                    <strong>{account}</strong>. It's valued at {coinValue.toCcd()} CCD.
+                                    This will redeem coin <strong><span style={{ color: 'blue' }}>{coinSeed}</span></strong> for account{' '}
+                                    <strong><span style={{ color: 'green' }}>{account}</span></strong>.<br />
+                                    It's valued at <span style={{ color: '#ff6200' }}><strong>{coinValue.toCcd().toString()} CCD</strong></span>.
                                 </Card.Text>
                                 <Button variant="primary" onClick={handleSubmitSign}>
                                     Redeem!
@@ -260,10 +238,10 @@ function RedeemCoin() {
                         </Spinner>
                     </>
                 )}
-                {redeemState == RedeemState.RedeemSuccess && scPayload && (
+                {redeemState == RedeemState.RedeemSuccess && scPayload && coinValue && (
                     <>
                         <Alert variant="success">
-                            <Alert.Heading>Successfully reedemed</Alert.Heading>
+                            <Alert.Heading>Successfully reedemed <span style={{ color: '#ff6200' }}><strong>{coinValue.toCcd().toString()} CCD</strong></span></Alert.Heading>
                             <div>
                                 {scPayload.pubkey ? <p>Coin public key: {scPayload.pubkey}</p> : null}
                                 {scPayload.account ? <p>To account: {scPayload.account}</p> : null}

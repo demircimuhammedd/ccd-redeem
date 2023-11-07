@@ -24,5 +24,5 @@ uuid = { version = "1.2.2", features = ["v4", "serde"] }
 hex = "0.4.3"
 
 [dependencies.concordium-rust-sdk]
-path = "../../deps/concordium-rust-sdk/"
+version = "2"
 

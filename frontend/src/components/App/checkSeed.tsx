@@ -1,36 +1,63 @@
-import { detectConcordiumProvider } from '@concordium/browser-wallet-api-helpers';
-import { CcdAmount } from '@concordium/web-sdk';
-import { base58_to_binary } from 'base58-js';
+import { WalletApi, detectConcordiumProvider } from '@concordium/browser-wallet-api-helpers';
+import { CcdAmount, ContractContext, deserializeTypeValue, serializeTypeValue } from '@concordium/web-sdk';
+import {
+    typeSchemaFromBase64,
+} from '@concordium/wallet-connectors';
+import Constants from "./Constants";
+import { Buffer } from "buffer/";
+import { keysFromSeed } from './coinSignature';
 
-export type PrestineCoin = CcdAmount;
-export type RedeemedCoin = CcdAmount;
+export interface CoinInfo {
+    amount: string,
+    is_redeemed: boolean
+};
+
 export enum SeedError {
     InvalidEncoding,
     InvalidLength,
-    CoinNotFound
+    CoinNotFound,
+    DeserializationFailed
 }
-export type SeedAnswer = PrestineCoin | RedeemedCoin | SeedError
+export type SeedAnswer = CoinInfo | SeedError
 
-export function isPrestineCoin(a: unknown): a is PrestineCoin {
-    return a === "PrestineCoin"
+export function isPristineCoin(a: CoinInfo): boolean {
+    return !a.is_redeemed
 }
 
-function checkSeed(CoinSeeed: string): SeedAnswer {
-    try {
-        // Extract the 32 bytes seed
-        const seed = base58_to_binary(CoinSeeed);
-        if (seed.length != 32) {
-            return SeedError.InvalidLength
-        }        
-    } catch (error) {
-        return SeedError.InvalidLength
+function checkSeed(coinSeed: string): Promise<SeedAnswer> {
+    const keys = keysFromSeed(coinSeed);
+    if (keys instanceof Error) {
+        return Promise.resolve(SeedError.InvalidLength)
+    } else {
+        // Check if the coin exists and is pristine
+        return detectConcordiumProvider().then(
+            (walletClient) => {
+                return getCoinInfo(keys.hexPublicKey, walletClient).then(res => {
+                    if ((res.tag == "success") && (res.returnValue)) {
+                        let schema = typeSchemaFromBase64(Constants.SCHEMAS.entrypoints.viewCoin.returnValue);
+                        console.log(res);
+                        try {
+                            let val: unknown = deserializeTypeValue(Buffer.from(res.returnValue, 'hex'), schema.value);
+                            let coinInfo = val as CoinInfo;
+                            return coinInfo
+                        }
+                        catch (err) {
+                            return SeedError.DeserializationFailed
+                        }
+                    } else {
+                        return SeedError.CoinNotFound
+                    }
+                })
+            })
     }
-    // Check if the coin exists and is prestine
-    detectConcordiumProvider().then(
-        (walletClient) => {
-            //return CcdAmount.fromCcd(0n) as PrestineCoin;
-    });
-    return SeedError.CoinNotFound
 }
 
 export default checkSeed;
+
+function getCoinInfo(pk: string, walletClient: WalletApi) {
+    console.log(pk);
+    let schema = typeSchemaFromBase64(Constants.SCHEMAS.entrypoints.viewCoin.parameter);
+    let param = serializeTypeValue(pk, schema.value);
+    let context: ContractContext = { contract: Constants.CONTRACT_ADDRESS, amount: new CcdAmount(0), method: Constants.VIEW_COIN_ENTRYPOINT_FULL, parameter: param, energy: Constants.MAX_COST };
+    return walletClient.getGrpcClient().invokeContract(context)
+}
