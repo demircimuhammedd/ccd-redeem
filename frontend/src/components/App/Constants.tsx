@@ -12,7 +12,7 @@ const MAX_COST = 30000n;
 
 const CONTRACT_ADDRESS = {
     index: 7211n,
-    // TBD: index of a demo contract.
+    //index: 7218n // index of a demo contract(contains 2000 coins from the corresponsing labels)
     subindex: 0n,
 };
 
