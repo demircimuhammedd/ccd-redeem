@@ -186,6 +186,17 @@ function RedeemCoin() {
                         </Row>
                     </>
                 )}
+                {!coinSeed && (
+                    <>
+                    <Row>
+                            <Link to={'/'}>
+                                <Button variant="primary">
+                                    <Bank /> Enter Coin Seed
+                                </Button>
+                            </Link>
+                    </Row>
+                    </>                     
+                )}
                 {redeemState == RedeemState.RedeemedSeed && coinValue && (
                     <>
                     <Row>
