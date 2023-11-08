@@ -41,6 +41,7 @@ function RedeemCoin() {
 
     enum RedeemState {
         NoValidSeed,
+        RedeemedSeed,
         GoodSeed,
         Redeeming,
         RedeemSuccess,
@@ -100,8 +101,8 @@ function RedeemCoin() {
                             console.log(answer);
                             setRedeemState(RedeemState.GoodSeed);
                         } else {
-                            setRedeemState(RedeemState.NoValidSeed);
-                            setErrorMessage('Coin already redeemed.');
+                            setRedeemState(RedeemState.RedeemedSeed);
+                            setCoinValue(new CcdAmount(answer.amount));
                         }
                         break;
                 }
@@ -185,6 +186,24 @@ function RedeemCoin() {
                         </Row>
                     </>
                 )}
+                {redeemState == RedeemState.RedeemedSeed && coinValue && (
+                    <>
+                    <Row>
+                        <Col>
+                            <Alert key="warning" variant="warning">
+                                Coin already redeemed. It was valued at <span style={{ color: '#ff6200' }}><strong>{coinValue.toCcd().toString()} CCD</strong></span>.
+                            </Alert>
+                        </Col>
+                    </Row>
+                    <Row>
+                            <Link to={'/'}>
+                                <Button variant="primary">
+                                    <Bank /> Redeem another coin
+                                </Button>
+                            </Link>
+                    </Row>
+                    </>                    
+                )}
                 {(redeemState == RedeemState.NoValidSeed) || (redeemState == RedeemState.RedeemFailure) && (
                     <>
                         <Row>
@@ -196,7 +215,26 @@ function RedeemCoin() {
                         </Row>
                     </>
                 )}
-                {redeemState == RedeemState.GoodSeed && coinValue && (
+                {redeemState == RedeemState.GoodSeed && coinValue && !account &&(
+                    <>
+                        <Card>
+                            <Card.Body>
+                                <Card.Title>Redeem Coin</Card.Title>
+                                <Card.Text>
+                                    Coin <strong><span style={{ color: 'blue' }}>{coinSeed}</span></strong> is reedemable at a value of <span style={{ color: '#ff6200' }}><strong>{coinValue.toCcd().toString()} CCD</strong></span>.
+                                </Card.Text>
+                                <Connection
+                                    verifier="a"
+                                    account={account}
+                                    authToken="a"
+                                    setAccount={setAccount}
+                                    setAuthToken={() => { }}
+                                />
+                            </Card.Body>
+                        </Card>
+                    </>
+                )}
+                {redeemState == RedeemState.GoodSeed && coinValue && account &&(
                     <>
                         <Connection
                             verifier="a"
