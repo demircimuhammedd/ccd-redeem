@@ -1,10 +1,6 @@
 import json
-import os
 from pathlib import Path
-from typing import List
 from blabel import LabelWriter
-from nacl.signing import SigningKey
-from nacl.encoding import HexEncoder
 
 def get_path(file:str):
     return (Path(__file__).parent).joinpath(file)
@@ -26,17 +22,12 @@ def generate_labels(b58_seeds, amounts, template_file, style_file, target):
     records = [dict(seed=s[2:-1],amount=a//1_000_000,count=i%2) for i,(s,a) in enumerate(zip(b58_seeds,amounts))]
     label_writer.write_labels(records, target=target)
 
-def generate_seeds(ccd_amounts: List[int]):
-    n = len(ccd_amounts)
-    # Good enough randomness for this demo
-    seeds = [os.urandom(32) for _ in  range(n)]
-    b58_seeds = [base58encode(s) for s in seeds]
-    keys = [SigningKey(s) for s in seeds]
-    sc_input = {"coins" : [[k.verify_key.encode(encoder=HexEncoder).decode(), f"{a}"] for k,a in zip(keys,ccd_amounts)]}
-    generate_labels(b58_seeds, ccd_amounts, "style/coin_template.html","style/style.css","qr-coin-labels.pdf")
-    with open(get_path('qr-coin-seeds.json'), 'w') as f:
-        json.dump([f"{s}" for s in b58_seeds], f)    
-    with open(get_path('qr-sc-input.json'), 'w') as f:
-        json.dump(sc_input, f)    
+def reprint_labels(file: str = "qr-coin-seeds.json"):
+    with open(get_path(file)) as f:
+        print(__file__)
+        b58_seeds = json.load(f)
+        ccd_amounts = [2_000_000_000 for _ in range(10)]
+        generate_labels(b58_seeds, ccd_amounts, "style/coin_template2.html","style/style2.css","qr-coin-labels.pdf")
+        generate_labels(b58_seeds, ccd_amounts, "style/coin_template.html","style/style.css","qr-coin-labels2.pdf")
 
-generate_seeds([2_000_000_000 for _ in range(10)])
+reprint_labels()

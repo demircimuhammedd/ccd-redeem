@@ -10,7 +10,7 @@
     height: 57mm;
     padding: 0mm;
     margin: 0mm;
-    margin-right: -3px;
+    margin-right: -4px;
     margin-bottom: -3px;
 }
     
@@ -19,7 +19,10 @@
     width: 70pt;
     height: 70pt;
     margin: 5pt;
-    position: relative
+    position: relative;
+    float: right;
+    margin-right: 1cm;
+    margin-top: 1.5cm;
 }
 .coin {
     position: absolute;
@@ -64,6 +67,8 @@
     height: 70pt;
     margin: 5pt;
     position: relative;
+    margin-top: 1.5cm;
+    margin-left: 0.5cm;
 }
 .qrcode {
     height: 100%;
