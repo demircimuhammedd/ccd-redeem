@@ -1,4 +1,4 @@
-import { SchemaType, detectConcordiumProvider } from '@concordium/browser-wallet-api-helpers';
+import { EventType, SchemaType, detectConcordiumProvider } from '@concordium/browser-wallet-api-helpers';
 import {
     AccountTransactionType,
     unwrap,
@@ -61,15 +61,15 @@ function RedeemCoin() {
     useEffect(() => {
         detectConcordiumProvider().then((client) => {
             // Listen for relevant events from the wallet.
-            client.on('accountChanged', (account) => {
-                console.debug('browserwallet event: accountChange', { account });
+            client.on(EventType.AccountChanged, (account) => {
+                console.debug('browserwallet event: accountChanged', { account });
                 setAccount(account);
             });
-            client.on('accountDisconnected', () => {
+            client.on(EventType.AccountDisconnected, () => {
                 console.debug('browserwallet event: accountDisconnected');
-                client.getMostRecentlySelectedAccount().then(setAccount);
+                setAccount(undefined)
             });
-            client.on('chainChanged', (chain) => {
+            client.on(EventType.ChainChanged, (chain) => {
                 console.debug('browserwallet event: chainChanged', { chain });
             });
             // Check if you are already connected
@@ -77,7 +77,6 @@ function RedeemCoin() {
             return client;
         });
     }, []);
-
     useEffect(() => {
         if (coinSeed) {
             checkSeed(coinSeed).then(answer => {

@@ -3,6 +3,9 @@ import { Container, Row, Col, Button, Form } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { QrScanner } from '@yudiel/react-qr-scanner';
 import { BackspaceFill, QrCodeScan } from 'react-bootstrap-icons';
+import Connection from './Connection';
+import { EventType, detectConcordiumProvider } from '@concordium/browser-wallet-api-helpers';
+import coins from '../../assets/ccd_redeemable_coins.png';
 
 function HomePage() {
     const navigate = useNavigate();
@@ -12,8 +15,9 @@ function HomePage() {
         QRScan,
     }
 
-    const [homeState, setHomeState] = useState<HomeState>();
+    const [homeState, setHomeState] = useState<HomeState>(HomeState.Initial);
     const [coinSeed, setCoinSeed] = useState<string>('');
+    const [account, setAccount] = useState<string>();
 
     const handleQR = (result: any) => {
         if (result) {
@@ -21,14 +25,29 @@ function HomePage() {
             return navigate('/redeem/' + result);
         }
     };
-
     useEffect(() => {
-        setHomeState(HomeState.Initial);
+        detectConcordiumProvider().then((client) => {
+            // Listen for relevant events from the wallet.
+            client.on(EventType.AccountChanged, (account) => {
+                console.debug('browserwallet event: accountChanged', { account });
+                setAccount(account);
+            });
+            client.on(EventType.AccountDisconnected, () => {
+                console.debug('browserwallet event: accountDisconnected');
+                setAccount(undefined)
+            });
+            client.on(EventType.ChainChanged, (chain) => {
+                console.debug('browserwallet event: chainChanged', { chain });
+            });
+            // Check if you are already connected
+            client.getMostRecentlySelectedAccount().then(setAccount);
+            return client;
+        });
     }, []);
 
     return (
         <Container>
-            {homeState == HomeState.Initial && (
+            {homeState == HomeState.Initial && account && (
                 <>
                     <Row>
                         <Col>
@@ -95,6 +114,19 @@ function HomePage() {
                             onError={(error) => console.log(error?.message)}
                         />
                     </Row>
+                </>
+            )}
+            {homeState == HomeState.Initial && !account && (
+                <>
+                    <img src={coins} alt="CCD coins" width={200} />
+                    <p>physical coin, redeemable for CCDs</p>
+                    <Connection
+                        verifier="a"
+                        account={account}
+                        authToken="a"
+                        setAccount={setAccount}
+                        setAuthToken={() => { }}
+                    />
                 </>
             )}
         </Container>
